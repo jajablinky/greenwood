@@ -15,7 +15,9 @@ import {
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChatTranscript } from "@/components/chat-transcript"
 import { BrowserPanel } from "@/components/browser-panel"
+import { ConnectContentPanel } from "@/components/connect-content-panel"
 import { LeftSidebarResizeHandle } from "@/components/left-sidebar-resize-handle"
+import { NewAppFlow } from "@/components/new-app-flow"
 import { NewProtocolFlow } from "@/components/new-protocol-flow"
 import { Button } from "@/components/ui/button"
 import {
@@ -68,8 +70,12 @@ function App() {
   const [leftSidebarWidthPx, setLeftSidebarWidthPx] = useState(
     LEFT_SIDEBAR_DEFAULT_PX
   )
+  const [mainView, setMainView] = useState<"chat" | "connect">("chat")
   const [newProtocolFlowOpen, setNewProtocolFlowOpen] = useState(false)
   const [newProtocolPlan, setNewProtocolPlan] = useState("")
+  const [newAppFlowOpen, setNewAppFlowOpen] = useState(false)
+  const [newAppPlan, setNewAppPlan] = useState("")
+  const [newAppHookedProtocolId, setNewAppHookedProtocolId] = useState("")
   const [followUpDraft, setFollowUpDraft] = useState("")
   const [threads, setThreads] = useState<Record<string, ThreadMessage[]>>({})
 
@@ -106,7 +112,9 @@ function App() {
   )
 
   function handleSelectFork(forkId: string) {
+    setMainView("chat")
     setNewProtocolFlowOpen(false)
+    setNewAppFlowOpen(false)
     setSelectedForkId(forkId)
     setFollowUpDraft("")
   }
@@ -116,7 +124,9 @@ function App() {
     if (!protocol || protocol.forks.length === 0) {
       return
     }
+    setMainView("chat")
     setNewProtocolFlowOpen(false)
+    setNewAppFlowOpen(false)
     const [latest] = sortForksNewestFirst(protocol.forks)
     setSelectedForkId(latest.id)
     setFollowUpDraft("")
@@ -183,14 +193,81 @@ function App() {
     }))
   }
 
+  function handleNewAppSubmit(e: FormEvent) {
+    e.preventDefault()
+    const plan = newAppPlan.trim()
+    if (!plan || !newAppHookedProtocolId) {
+      return
+    }
+    const hook = protocols.find((p) => p.id === newAppHookedProtocolId)
+    const name =
+      plan.split("\n")[0]?.trim().slice(0, 120) || "New app"
+    const preview = name
+    const pid = newProtocolId()
+    const fid = newForkId(pid)
+    const protocol: Protocol = {
+      id: pid,
+      name,
+      forks: [
+        {
+          id: fid,
+          preview,
+          createdAt: Date.now(),
+        },
+      ],
+      hooksIntoProtocolId: newAppHookedProtocolId,
+    }
+    setProtocols((prev) => [protocol, ...prev])
+    setSelectedForkId(fid)
+    setFollowUpDraft("")
+    setNewAppFlowOpen(false)
+    setNewAppPlan("")
+    const hookLabel = hook?.name ?? newAppHookedProtocolId
+    const userMsg: ThreadMessage = {
+      id: `${fid}-u-start`,
+      role: "user",
+      body: `[Hook: ${hookLabel}]\n\n${plan}`,
+    }
+    setThreads((prev) => ({
+      ...prev,
+      [fid]: [userMsg, mockAssistantFollowUp()],
+    }))
+  }
+
   function openNewProtocolFlow() {
+    setMainView("chat")
     setNewProtocolFlowOpen(true)
+    setNewAppFlowOpen(false)
     setNewProtocolPlan("")
   }
 
-  const headerTitle = newProtocolFlowOpen
-    ? "New protocol"
-    : active?.protocol.name?.trim() || "Select a chat"
+  function openNewAppFlow() {
+    setMainView("chat")
+    setNewAppFlowOpen(true)
+    setNewProtocolFlowOpen(false)
+    setNewAppPlan("")
+    setNewAppHookedProtocolId((id) => {
+      if (id && protocols.some((p) => p.id === id)) {
+        return id
+      }
+      return protocols[0]?.id ?? ""
+    })
+  }
+
+  function openConnectContent() {
+    setMainView("connect")
+    setNewProtocolFlowOpen(false)
+    setNewAppFlowOpen(false)
+  }
+
+  const headerTitle =
+    mainView === "connect"
+      ? "Connect content"
+      : newAppFlowOpen
+        ? "New app"
+        : newProtocolFlowOpen
+          ? "New protocol"
+          : active?.protocol.name?.trim() || "Select a chat"
 
   const headerTitleShort =
     headerTitle.length > 48 ? `${headerTitle.slice(0, 45)}…` : headerTitle
@@ -251,7 +328,23 @@ function App() {
         </DropdownMenu>
       </header>
 
-      {newProtocolFlowOpen ? (
+      {mainView === "connect" ? (
+        <ConnectContentPanel
+          className={chatCanvasClass}
+          onOpenProtocol={selectProtocol}
+        />
+      ) : newAppFlowOpen ? (
+        <NewAppFlow
+          plan={newAppPlan}
+          onPlanChange={setNewAppPlan}
+          hookedProtocolId={newAppHookedProtocolId}
+          onHookedProtocolChange={setNewAppHookedProtocolId}
+          protocols={protocols.map((p) => ({ id: p.id, name: p.name }))}
+          onSubmit={handleNewAppSubmit}
+          onDismiss={() => setNewAppFlowOpen(false)}
+          className={chatCanvasClass}
+        />
+      ) : newProtocolFlowOpen ? (
         <NewProtocolFlow
           plan={newProtocolPlan}
           onPlanChange={setNewProtocolPlan}
@@ -351,6 +444,8 @@ function App() {
         selectedForkId={selectedForkId}
         onSelectFork={handleSelectFork}
         onNewAgent={openNewProtocolFlow}
+        onNewApp={openNewAppFlow}
+        onConnectContent={openConnectContent}
       />
       <SidebarInset
         className={cn(

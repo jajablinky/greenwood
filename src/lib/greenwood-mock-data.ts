@@ -70,6 +70,24 @@ export type Protocol = {
   id: string
   name: string
   forks: Fork[]
+  /** When set, this protocol is an app build scoped to hook into another protocol. */
+  hooksIntoProtocolId?: string
+}
+
+export type ConnectContentCategory =
+  | "social"
+  | "videos"
+  | "images"
+  | "text"
+  | "protocol"
+
+export type ConnectContentItem = {
+  id: string
+  title: string
+  hint?: string
+  category: ConnectContentCategory
+  protocolId?: string
+  protocolName?: string
 }
 
 const day = 86_400_000
@@ -149,6 +167,92 @@ export const INITIAL_PROTOCOLS: Protocol[] = [
         createdAt: now - 5400_000,
       },
     ],
+  },
+]
+
+/** Browse / connect: mock permaweb-adjacent surfaces (filters in UI). */
+export const CONNECT_CONTENT_ITEMS: ConnectContentItem[] = [
+  {
+    id: "cc-1",
+    title: "ArNS profile stream",
+    hint: "Identity + posts",
+    category: "social",
+    protocolId: "p-jaja-research",
+    protocolName: "jaja/daily-forward-research-site",
+  },
+  {
+    id: "cc-2",
+    title: "AO task monitor feed",
+    hint: "Live ops",
+    category: "protocol",
+    protocolId: "p-greenwood",
+    protocolName: "jajablinky/greenwood",
+  },
+  {
+    id: "cc-3",
+    title: "Landing hero stills",
+    hint: "PNG bundle",
+    category: "images",
+    protocolId: "p-per-blue",
+    protocolName: "per-new-blue-marketing-site",
+  },
+  {
+    id: "cc-4",
+    title: "Deploy walkthrough",
+    hint: "5 min",
+    category: "videos",
+    protocolId: "p-greenwood",
+    protocolName: "jajablinky/greenwood",
+  },
+  {
+    id: "cc-5",
+    title: "Brand voice notes",
+    hint: "Markdown",
+    category: "text",
+    protocolId: "p-per-blue",
+    protocolName: "per-new-blue-marketing-site",
+  },
+  {
+    id: "cc-6",
+    title: "Permaweb digest",
+    hint: "Weekly",
+    category: "social",
+  },
+  {
+    id: "cc-7",
+    title: "Token metadata images",
+    hint: "Square crops",
+    category: "images",
+  },
+  {
+    id: "cc-8",
+    title: "CLI screen capture",
+    hint: "asciinema",
+    category: "videos",
+  },
+  {
+    id: "cc-9",
+    title: "README + LICENSE",
+    hint: "Plain text",
+    category: "text",
+  },
+  {
+    id: "cc-10",
+    title: "SmartWeave reader",
+    hint: "Legacy contract",
+    category: "protocol",
+  },
+  {
+    id: "cc-11",
+    title: "Farcaster frame spec",
+    hint: "Open graph",
+    category: "social",
+  },
+  {
+    id: "cc-12",
+    title: "4K b-roll pack",
+    hint: "Looped",
+    category: "videos",
   },
 ]
 

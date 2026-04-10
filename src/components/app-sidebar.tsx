@@ -3,6 +3,7 @@
 import * as React from "react"
 import {
   ChevronDownIcon,
+  Link2Icon,
   MinusIcon,
   PlusIcon,
   SettingsIcon,
@@ -53,6 +54,8 @@ export type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   selectedForkId: string
   onSelectFork: (forkId: string) => void
   onNewAgent: () => void
+  onNewApp: () => void
+  onConnectContent: () => void
 }
 
 export function AppSidebar({
@@ -60,6 +63,8 @@ export function AppSidebar({
   selectedForkId,
   onSelectFork,
   onNewAgent,
+  onNewApp,
+  onConnectContent,
   ...props
 }: AppSidebarProps) {
   const [forksExpanded, setForksExpanded] = React.useState<Record<string, boolean>>({})
@@ -87,6 +92,23 @@ export function AppSidebar({
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
+              tooltip="New App"
+              onClick={onNewApp}
+              className={cn(
+                "rounded-lg font-normal tracking-wide text-muted-foreground",
+                "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                "active:bg-sidebar-accent/60 active:text-sidebar-foreground",
+                "focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              )}
+            >
+              <span className={cn(SIDEBAR_ROW_RAIL, "items-center [&_svg]:opacity-50")}>
+                <PlusIcon className="size-4" />
+              </span>
+              <span>New App</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
               tooltip="New Protocol"
               onClick={onNewAgent}
               className={cn(
@@ -100,6 +122,23 @@ export function AppSidebar({
                 <PlusIcon className="size-4" />
               </span>
               <span>New Protocol</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Connect content"
+              onClick={onConnectContent}
+              className={cn(
+                "rounded-lg font-normal tracking-wide text-muted-foreground",
+                "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                "active:bg-sidebar-accent/60 active:text-sidebar-foreground",
+                "focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              )}
+            >
+              <span className={cn(SIDEBAR_ROW_RAIL, "items-center [&_svg]:opacity-50")}>
+                <Link2Icon className="size-4" />
+              </span>
+              <span>Connect content</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
