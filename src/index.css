@@ -52,6 +52,28 @@
     --color-alt-green-mint: oklch(0.9554 0.072 152.17);
     --color-alt-green-lime: oklch(0.9445 0.1502 126.28);
     --color-alt-green-deep: oklch(0.5646 0.1805 144.46);
+    /* PermawebOS-UI / Figma node 2:33 — exact variable names in comments */
+    --color-permaweb-red-1-deep: #cd0d34; /* red -1 - deep */
+    --color-permaweb-red-2-smooth: #fd9069; /* red - 2 - smooth */
+    --color-permaweb-red-3-salmon: #ffcdcd; /* red - 3 - salmon */
+    --color-permaweb-red-4-light: #ffe4e4; /* red - 4 - light */
+    --color-permaweb-green-1-deep: #008f20; /* green - 1 - deep */
+    --color-permaweb-green-2-lime: #d3ff8c; /* green - 2 - lime */
+    --color-permaweb-green-3-mint: #cdffd9; /* green - 3 - mint */
+    --color-permaweb-green-4-light: #e4ffea; /* green - 4 - light */
+    --color-permaweb-blue-1-deep: #0072c8; /* blue - 1 - deep */
+    --color-permaweb-blue-2-lavender: #bdc9ff; /* blue - 2 - lavender */
+    --color-permaweb-blue-3-baby: #cdecff; /* blue - 3 - baby */
+    --color-permaweb-blue-4-light: #e4f4ff; /* blue - 4 - light */
+    /* Extended accents — avatar variety (pair with deep/soft picker in avatar.tsx) */
+    --color-permaweb-violet-deep: #5b21b6;
+    --color-permaweb-violet-soft: #ede9fe;
+    --color-permaweb-amber-deep: #d97706;
+    --color-permaweb-amber-soft: #fef3c7;
+    --color-permaweb-cyan-deep: #0891b2;
+    --color-permaweb-cyan-soft: #cffafe;
+    --color-permaweb-rose-deep: #e11d48;
+    --color-permaweb-rose-soft: #ffe4e6;
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -143,4 +165,15 @@
   body, #root {
     min-height: 100svh;
     }
+  /* App-wide cap: nothing heavier than medium (500). */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  strong,
+  b {
+    font-weight: 500;
+  }
 }

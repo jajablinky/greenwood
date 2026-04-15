@@ -1,5 +1,11 @@
+import { ActivityFeedPage } from "@/components/activity-feed-page"
+import { AppDetailPage } from "@/components/app-detail-page"
+import { Navigate, Route, Routes } from "react-router-dom"
+
+/*
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type CSSProperties,
@@ -11,13 +17,13 @@ import {
   MoreHorizontalIcon,
   PlusIcon,
 } from "lucide-react"
+import { Link, useNavigate, useParams } from "react-router-dom"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChatTranscript } from "@/components/chat-transcript"
 import { BrowserPanel } from "@/components/browser-panel"
 import { ConnectContentPanel } from "@/components/connect-content-panel"
 import { LeftSidebarResizeHandle } from "@/components/left-sidebar-resize-handle"
-import { NewAppFlow } from "@/components/new-app-flow"
 import { NewProtocolFlow } from "@/components/new-protocol-flow"
 import { Button } from "@/components/ui/button"
 import {
@@ -37,6 +43,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { studioPathForProtocol, toAppRouteName } from "@/lib/app-route-name"
 import { cn } from "@/lib/utils"
 import {
   buildMergedProtocolThread,
@@ -54,7 +61,7 @@ const LEFT_SIDEBAR_MIN_PX = 220
 const LEFT_SIDEBAR_MAX_PX = 440
 const LEFT_SIDEBAR_DEFAULT_PX = 256
 
-/** Main chat canvas: brighter than shell/sidebar `#f7f7f6`, not pure white */
+// Main chat canvas: brighter than shell/sidebar `#f7f7f6`, not pure white
 const chatCanvasClass = "bg-white dark:bg-background"
 
 function sortForksNewestFirst(forks: Protocol["forks"]) {
@@ -63,7 +70,9 @@ function sortForksNewestFirst(forks: Protocol["forks"]) {
 
 const INITIAL_FORK_ID = "p-jaja-research-f1"
 
-function App() {
+function StudioApp() {
+  const { appName } = useParams<{ appName: string }>()
+  const navigate = useNavigate()
   const [protocols, setProtocols] = useState<Protocol[]>(INITIAL_PROTOCOLS)
   const [selectedForkId, setSelectedForkId] = useState(INITIAL_FORK_ID)
   const [browserOpen, setBrowserOpen] = useState(false)
@@ -73,9 +82,6 @@ function App() {
   const [mainView, setMainView] = useState<"chat" | "connect">("chat")
   const [newProtocolFlowOpen, setNewProtocolFlowOpen] = useState(false)
   const [newProtocolPlan, setNewProtocolPlan] = useState("")
-  const [newAppFlowOpen, setNewAppFlowOpen] = useState(false)
-  const [newAppPlan, setNewAppPlan] = useState("")
-  const [newAppHookedProtocolId, setNewAppHookedProtocolId] = useState("")
   const [followUpDraft, setFollowUpDraft] = useState("")
   const [threads, setThreads] = useState<Record<string, ThreadMessage[]>>({})
 
@@ -83,6 +89,30 @@ function App() {
     () => findForkContext(protocols, selectedForkId),
     [protocols, selectedForkId]
   )
+
+  useEffect(() => {
+    if (!appName) {
+      return
+    }
+    const targetProtocol = protocols.find(
+      (protocol) => toAppRouteName(protocol.name) === appName
+    )
+    if (!targetProtocol) {
+      navigate("/studio", { replace: true })
+      return
+    }
+    if (active?.protocol.id === targetProtocol.id) {
+      return
+    }
+    const [latest] = sortForksNewestFirst(targetProtocol.forks)
+    if (!latest) {
+      return
+    }
+    setMainView("chat")
+    setNewProtocolFlowOpen(false)
+    setSelectedForkId(latest.id)
+    setFollowUpDraft("")
+  }, [active?.protocol.id, appName, navigate, protocols])
 
   const threadForActive = useMemo(() => {
     if (!active) {
@@ -112,21 +142,26 @@ function App() {
   )
 
   function handleSelectFork(forkId: string) {
+    const context = findForkContext(protocols, forkId)
+    if (context) {
+      navigate(studioPathForProtocol(context.protocol.name))
+    }
     setMainView("chat")
     setNewProtocolFlowOpen(false)
-    setNewAppFlowOpen(false)
     setSelectedForkId(forkId)
     setFollowUpDraft("")
   }
 
-  function selectProtocol(protocolId: string) {
+  function selectProtocol(protocolId: string, updateRoute = true) {
     const protocol = protocols.find((p) => p.id === protocolId)
     if (!protocol || protocol.forks.length === 0) {
       return
     }
+    if (updateRoute) {
+      navigate(studioPathForProtocol(protocol.name))
+    }
     setMainView("chat")
     setNewProtocolFlowOpen(false)
-    setNewAppFlowOpen(false)
     const [latest] = sortForksNewestFirst(protocol.forks)
     setSelectedForkId(latest.id)
     setFollowUpDraft("")
@@ -178,6 +213,7 @@ function App() {
       ],
     }
     setProtocols((prev) => [protocol, ...prev])
+    navigate(studioPathForProtocol(name))
     setSelectedForkId(fid)
     setFollowUpDraft("")
     setNewProtocolFlowOpen(false)
@@ -193,79 +229,21 @@ function App() {
     }))
   }
 
-  function handleNewAppSubmit(e: FormEvent) {
-    e.preventDefault()
-    const plan = newAppPlan.trim()
-    if (!plan || !newAppHookedProtocolId) {
-      return
-    }
-    const hook = protocols.find((p) => p.id === newAppHookedProtocolId)
-    const name =
-      plan.split("\n")[0]?.trim().slice(0, 120) || "New app"
-    const preview = name
-    const pid = newProtocolId()
-    const fid = newForkId(pid)
-    const protocol: Protocol = {
-      id: pid,
-      name,
-      forks: [
-        {
-          id: fid,
-          preview,
-          createdAt: Date.now(),
-        },
-      ],
-      hooksIntoProtocolId: newAppHookedProtocolId,
-    }
-    setProtocols((prev) => [protocol, ...prev])
-    setSelectedForkId(fid)
-    setFollowUpDraft("")
-    setNewAppFlowOpen(false)
-    setNewAppPlan("")
-    const hookLabel = hook?.name ?? newAppHookedProtocolId
-    const userMsg: ThreadMessage = {
-      id: `${fid}-u-start`,
-      role: "user",
-      body: `[Hook: ${hookLabel}]\n\n${plan}`,
-    }
-    setThreads((prev) => ({
-      ...prev,
-      [fid]: [userMsg, mockAssistantFollowUp()],
-    }))
-  }
-
   function openNewProtocolFlow() {
     setMainView("chat")
     setNewProtocolFlowOpen(true)
-    setNewAppFlowOpen(false)
     setNewProtocolPlan("")
-  }
-
-  function openNewAppFlow() {
-    setMainView("chat")
-    setNewAppFlowOpen(true)
-    setNewProtocolFlowOpen(false)
-    setNewAppPlan("")
-    setNewAppHookedProtocolId((id) => {
-      if (id && protocols.some((p) => p.id === id)) {
-        return id
-      }
-      return protocols[0]?.id ?? ""
-    })
   }
 
   function openConnectContent() {
     setMainView("connect")
     setNewProtocolFlowOpen(false)
-    setNewAppFlowOpen(false)
   }
 
   const headerTitle =
     mainView === "connect"
       ? "Connect content"
-      : newAppFlowOpen
-        ? "New app"
-        : newProtocolFlowOpen
+      : newProtocolFlowOpen
           ? "New protocol"
           : active?.protocol.name?.trim() || "Select a chat"
 
@@ -286,6 +264,12 @@ function App() {
             {headerTitleShort}
           </span>
         </div>
+        <Link
+          to="/"
+          className="shrink-0 text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          Feed
+        </Link>
         <Button
           type="button"
           variant={browserOpen ? "secondary" : "ghost"}
@@ -332,17 +316,6 @@ function App() {
         <ConnectContentPanel
           className={chatCanvasClass}
           onOpenProtocol={selectProtocol}
-        />
-      ) : newAppFlowOpen ? (
-        <NewAppFlow
-          plan={newAppPlan}
-          onPlanChange={setNewAppPlan}
-          hookedProtocolId={newAppHookedProtocolId}
-          onHookedProtocolChange={setNewAppHookedProtocolId}
-          protocols={protocols.map((p) => ({ id: p.id, name: p.name }))}
-          onSubmit={handleNewAppSubmit}
-          onDismiss={() => setNewAppFlowOpen(false)}
-          className={chatCanvasClass}
         />
       ) : newProtocolFlowOpen ? (
         <NewProtocolFlow
@@ -444,7 +417,6 @@ function App() {
         selectedForkId={selectedForkId}
         onSelectFork={handleSelectFork}
         onNewAgent={openNewProtocolFlow}
-        onNewApp={openNewAppFlow}
         onConnectContent={openConnectContent}
       />
       <SidebarInset
@@ -499,5 +471,16 @@ function App() {
     </SidebarProvider>
   )
 }
+*/
 
-export default App
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<ActivityFeedPage />} />
+      <Route path="/app/:feedId" element={<AppDetailPage />} />
+      {/* <Route path="/studio" element={<StudioApp />} /> */}
+      {/* <Route path="/studio/:appName" element={<StudioApp />} /> */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}

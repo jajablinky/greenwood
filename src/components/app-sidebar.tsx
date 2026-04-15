@@ -54,7 +54,6 @@ export type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   selectedForkId: string
   onSelectFork: (forkId: string) => void
   onNewAgent: () => void
-  onNewApp: () => void
   onConnectContent: () => void
 }
 
@@ -63,7 +62,6 @@ export function AppSidebar({
   selectedForkId,
   onSelectFork,
   onNewAgent,
-  onNewApp,
   onConnectContent,
   ...props
 }: AppSidebarProps) {
@@ -85,27 +83,10 @@ export function AppSidebar({
                 "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:[&>*:not(:first-child)]:hidden"
               )}
             >
-              <span className="min-w-0 flex-1 truncate text-left text-sm font-semibold tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:text-center group-data-[collapsible=icon]:text-[10px] group-data-[collapsible=icon]:leading-tight">
+              <span className="min-w-0 flex-1 truncate text-left text-sm font-medium tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:text-center group-data-[collapsible=icon]:text-[10px] group-data-[collapsible=icon]:leading-tight">
                 PermawebOS
               </span>
             </div>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="New App"
-              onClick={onNewApp}
-              className={cn(
-                "rounded-lg font-normal tracking-wide text-muted-foreground",
-                "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-                "active:bg-sidebar-accent/60 active:text-sidebar-foreground",
-                "focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-              )}
-            >
-              <span className={cn(SIDEBAR_ROW_RAIL, "items-center [&_svg]:opacity-50")}>
-                <PlusIcon className="size-4" />
-              </span>
-              <span>New App</span>
-            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton

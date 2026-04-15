@@ -70,8 +70,6 @@ export type Protocol = {
   id: string
   name: string
   forks: Fork[]
-  /** When set, this protocol is an app build scoped to hook into another protocol. */
-  hooksIntoProtocolId?: string
 }
 
 export type ConnectContentCategory =
@@ -96,74 +94,84 @@ const now = Date.now()
 export const INITIAL_PROTOCOLS: Protocol[] = [
   {
     id: "p-per-blue",
-    name: "per-new-blue-marketing-site",
+    name: "Lumen — SaaS landing & checkout",
     forks: [
       {
         id: "p-per-blue-f1",
-        preview: "Draft hero headline variants for the landing page and A/B labels.",
+        preview:
+          "Ship hero + pricing with Stripe Checkout links and annual toggle.",
         createdAt: now - day * 5,
       },
       {
         id: "p-per-blue-f2",
-        preview: "Tighten spacing on the pricing table for mobile breakpoints.",
+        preview:
+          "Tighten mobile pricing grid; add SOC2 + GDPR badges above the fold.",
         createdAt: now - day * 4,
       },
       {
         id: "p-per-blue-f3",
-        preview: "Swap testimonial carousel for static quotes above the fold.",
+        preview:
+          "Replace carousel quotes with static logos + one-line case studies.",
         createdAt: now - day * 3,
       },
       {
         id: "p-per-blue-f4",
-        preview: "Add Arweave deploy notes to the footer compliance strip.",
+        preview:
+          "Add live preview URL + changelog block for enterprise procurement.",
         createdAt: now - day * 2,
       },
       {
         id: "p-per-blue-f5",
-        preview: "Review contrast on secondary buttons in dark mode preview.",
+        preview:
+          "Fix secondary button contrast in dark mode; match WCAG AA on slate.",
         createdAt: now - day * 1.5,
       },
       {
         id: "p-per-blue-f6",
-        preview: "Export Figma tokens for the marketing button radii.",
+        preview:
+          "Export design tokens for radii and spacing; wire into Tailwind theme.",
         createdAt: now - day * 1,
       },
       {
         id: "p-per-blue-f7",
-        preview: "Parked: wait on brand for illustration pack before ship.",
+        preview:
+          "Hold launch: swap stock art for custom illustrations when brand lands.",
         createdAt: now - day * 0.5,
       },
     ],
   },
   {
     id: "p-jaja-research",
-    name: "jaja/daily-forward-research-site",
+    name: "Northwind — analytics & KPI boards",
     forks: [
       {
         id: "p-jaja-research-f1",
         preview:
-          "For greenwood we are taking a different approach. We are going to change it to look like Cursor 3.",
+          "Rebuild exec overview: cohort retention, MRR bridge, and drill-down.",
         createdAt: now - 3600_000,
       },
       {
         id: "p-jaja-research-f2",
-        preview: "Summarize AO monitor alerts from the last sprint window.",
+        preview:
+          "Add saved views + Slack digests for spikes on error budget burn.",
         createdAt: now - 7200_000,
       },
     ],
   },
   {
     id: "p-greenwood",
-    name: "jajablinky/greenwood",
+    name: "Harbor — deploys & runbooks",
     forks: [
       {
         id: "p-greenwood-f1",
-        preview: "Wire up the sidebar to protocol timelines and fork selection.",
+        preview:
+          "Connect GitHub → preview envs; show diff + promote-to-prod button.",
         createdAt: now - 1800_000,
       },
       {
         id: "p-greenwood-f2",
-        preview: "Align orchestration preview styling with neutral OKLCH tokens.",
+        preview:
+          "Polish incident timeline UI; link runbooks and owner on-call roster.",
         createdAt: now - 5400_000,
       },
     ],
@@ -178,7 +186,7 @@ export const CONNECT_CONTENT_ITEMS: ConnectContentItem[] = [
     hint: "Identity + posts",
     category: "social",
     protocolId: "p-jaja-research",
-    protocolName: "jaja/daily-forward-research-site",
+    protocolName: "Northwind — analytics & KPI boards",
   },
   {
     id: "cc-2",
@@ -186,7 +194,7 @@ export const CONNECT_CONTENT_ITEMS: ConnectContentItem[] = [
     hint: "Live ops",
     category: "protocol",
     protocolId: "p-greenwood",
-    protocolName: "jajablinky/greenwood",
+    protocolName: "Harbor — deploys & runbooks",
   },
   {
     id: "cc-3",
@@ -194,7 +202,7 @@ export const CONNECT_CONTENT_ITEMS: ConnectContentItem[] = [
     hint: "PNG bundle",
     category: "images",
     protocolId: "p-per-blue",
-    protocolName: "per-new-blue-marketing-site",
+    protocolName: "Lumen — SaaS landing & checkout",
   },
   {
     id: "cc-4",
@@ -202,7 +210,7 @@ export const CONNECT_CONTENT_ITEMS: ConnectContentItem[] = [
     hint: "5 min",
     category: "videos",
     protocolId: "p-greenwood",
-    protocolName: "jajablinky/greenwood",
+    protocolName: "Harbor — deploys & runbooks",
   },
   {
     id: "cc-5",
@@ -210,7 +218,7 @@ export const CONNECT_CONTENT_ITEMS: ConnectContentItem[] = [
     hint: "Markdown",
     category: "text",
     protocolId: "p-per-blue",
-    protocolName: "per-new-blue-marketing-site",
+    protocolName: "Lumen — SaaS landing & checkout",
   },
   {
     id: "cc-6",
