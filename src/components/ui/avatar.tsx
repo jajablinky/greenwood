@@ -1,52 +1,46 @@
 import * as React from "react"
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 
-import { cn } from "@/lib/utils"
+import * as S from "./avatar.styles"
 
-/**
- * Saturated / “deep” family — weighted heavily so avatars read bold (not only pastels).
- * Includes Figma 2:33 primaries, alt-* deep/smooth/lime/lavender, and extended accents.
- */
 const AVATAR_BG_DEEP = [
-  "bg-permaweb-red-1-deep",
-  "bg-permaweb-red-2-smooth",
-  "bg-permaweb-green-1-deep",
-  "bg-permaweb-green-2-lime",
-  "bg-permaweb-blue-1-deep",
-  "bg-permaweb-blue-2-lavender",
-  "bg-permaweb-violet-deep",
-  "bg-permaweb-amber-deep",
-  "bg-permaweb-cyan-deep",
-  "bg-permaweb-rose-deep",
-  "bg-alt-red-deep",
-  "bg-alt-red-smooth",
-  "bg-alt-green-deep",
-  "bg-alt-green-lime",
-  "bg-alt-blue-deep",
-  "bg-alt-blue-lavender",
+  "var(--color-permaweb-red-1-deep)",
+  "var(--color-permaweb-red-2-smooth)",
+  "var(--color-permaweb-green-1-deep)",
+  "var(--color-permaweb-green-2-lime)",
+  "var(--color-permaweb-blue-1-deep)",
+  "var(--color-permaweb-blue-2-lavender)",
+  "var(--color-permaweb-violet-deep)",
+  "var(--color-permaweb-amber-deep)",
+  "var(--color-permaweb-cyan-deep)",
+  "var(--color-permaweb-rose-deep)",
+  "var(--color-alt-red-deep)",
+  "var(--color-alt-red-smooth)",
+  "var(--color-alt-green-deep)",
+  "var(--color-alt-green-lime)",
+  "var(--color-alt-blue-deep)",
+  "var(--color-alt-blue-lavender)",
 ] as const
 
-/** Pastel / light — used less often so pale tiles like `red-4-light` are not the default. */
 const AVATAR_BG_SOFT = [
-  "bg-permaweb-red-3-salmon",
-  "bg-permaweb-red-4-light",
-  "bg-permaweb-green-3-mint",
-  "bg-permaweb-green-4-light",
-  "bg-permaweb-blue-3-baby",
-  "bg-permaweb-blue-4-light",
-  "bg-permaweb-violet-soft",
-  "bg-permaweb-amber-soft",
-  "bg-permaweb-cyan-soft",
-  "bg-permaweb-rose-soft",
-  "bg-alt-red-salmon",
-  "bg-alt-red-light",
-  "bg-alt-green-mint",
-  "bg-alt-green-light",
-  "bg-alt-blue-baby",
-  "bg-alt-blue-light",
+  "var(--color-permaweb-red-3-salmon)",
+  "var(--color-permaweb-red-4-light)",
+  "var(--color-permaweb-green-3-mint)",
+  "var(--color-permaweb-green-4-light)",
+  "var(--color-permaweb-blue-3-baby)",
+  "var(--color-permaweb-blue-4-light)",
+  "var(--color-permaweb-violet-soft)",
+  "var(--color-permaweb-amber-soft)",
+  "var(--color-permaweb-cyan-soft)",
+  "var(--color-permaweb-rose-soft)",
+  "var(--color-alt-red-salmon)",
+  "var(--color-alt-red-light)",
+  "var(--color-alt-green-mint)",
+  "var(--color-alt-green-light)",
+  "var(--color-alt-blue-baby)",
+  "var(--color-alt-blue-light)",
 ] as const
 
-/** Pastel bucket rate (0–99). Lower = more deep colors. ~3% soft / 97% deep. */
 const AVATAR_SOFT_WEIGHT = 3
 
 function hashSeed(seed: string): number {
@@ -57,7 +51,7 @@ function hashSeed(seed: string): number {
   return h >>> 0
 }
 
-function permawebAvatarBackgroundClass(seed: string): string {
+function permawebAvatarBackground(seed: string): string {
   const h = hashSeed(seed)
   const pickSoft = h % 100 < AVATAR_SOFT_WEIGHT
   const spread = Math.imul(h, 0x9e37_79b1) >>> 0
@@ -67,34 +61,25 @@ function permawebAvatarBackgroundClass(seed: string): string {
   return AVATAR_BG_DEEP[spread % AVATAR_BG_DEEP.length]
 }
 
-/** Figma “permaweb-human” (node 1:112). */
-function PermawebHumanFigurine({ className }: { className?: string }) {
+function PermawebHumanFigurine() {
   return (
-    <svg
+    <S.FigurineSvg
       viewBox="0 0 89.6051 173"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid meet"
-      className={cn(
-        "pointer-events-none block h-full min-h-0 w-auto max-w-full text-black",
-        className
-      )}
       aria-hidden
     >
-      <g>
+      <g fill="currentColor">
         <circle
           cx="44.6856"
           cy="14.7554"
           r="14.7554"
-          className="fill-current"
           transform="rotate(180 44.6856 14.7554)"
         />
-        <path
-          className="fill-current"
-          d="M61.429 83.776L61.429 69.4365L75.2315 94.7838C77.3584 98.6897 82.0689 100.028 85.7528 97.7729C89.4367 95.5178 90.6988 90.5234 88.572 86.6175L61.5046 36.9102C59.9539 34.0625 57.0298 32.5797 54.1316 32.8592L35.4737 32.8592C32.5754 32.5796 29.6513 34.0625 28.1006 36.9102L1.03317 86.6175C-1.09371 90.5234 0.168479 95.5178 3.85235 97.7728C7.53622 100.028 12.2468 98.6896 14.3736 94.7838L28.1481 69.4879L28.1481 83.776L28.1481 100.915L28.1481 164.431C28.1481 169.163 30.8796 173 35.3434 173C39.8073 173 43.4259 169.163 43.4259 164.431L43.4259 101.412C43.5839 101.417 45.5167 101.419 45.6757 101.419C45.8347 101.419 45.9932 101.417 46.1511 101.412L46.1511 164.431C46.1511 169.163 49.7698 173 54.2336 173C58.6975 173 61.429 169.163 61.429 164.431L61.429 101.419V100.915L61.429 83.776Z"
-        />
+        <path d="M61.429 83.776L61.429 69.4365L75.2315 94.7838C77.3584 98.6897 82.0689 100.028 85.7528 97.7729C89.4367 95.5178 90.6988 90.5234 88.572 86.6175L61.5046 36.9102C59.9539 34.0625 57.0298 32.5797 54.1316 32.8592L35.4737 32.8592C32.5754 32.5796 29.6513 34.0625 28.1006 36.9102L1.03317 86.6175C-1.09371 90.5234 0.168479 95.5178 3.85235 97.7728C7.53622 100.028 12.2468 98.6896 14.3736 94.7838L28.1481 69.4879L28.1481 83.776L28.1481 100.915L28.1481 164.431C28.1481 169.163 30.8796 173 35.3434 173C39.8073 173 43.4259 169.163 43.4259 164.431L43.4259 101.412C43.5839 101.417 45.5167 101.419 45.6757 101.419C45.8347 101.419 45.9932 101.417 46.1511 101.412L46.1511 164.431C46.1511 169.163 49.7698 173 54.2336 173C58.6975 173 61.429 169.163 61.429 164.431L61.429 101.419V100.915L61.429 83.776Z" />
       </g>
-    </svg>
+    </S.FigurineSvg>
   )
 }
 
@@ -142,29 +127,12 @@ function Avatar({
   size?: "default" | "sm" | "lg"
 }) {
   return (
-    <AvatarPrimitive.Root
-      data-slot="avatar"
-      data-size={size}
-      className={cn(
-        "group/avatar relative flex size-8 shrink-0 overflow-hidden rounded-lg select-none after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-border after:mix-blend-darken data-[size=lg]:size-10 data-[size=sm]:size-6 dark:after:mix-blend-lighten",
-        className
-      )}
-      {...props}
-    />
+    <S.Root data-slot="avatar" data-size={size} className={className} {...props} />
   )
 }
 
 function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
-  return (
-    <AvatarPrimitive.Image
-      data-slot="avatar-image"
-      className={cn(
-        "aspect-square size-full rounded-none object-cover",
-        className
-      )}
-      {...props}
-    />
-  )
+  return <S.Image data-slot="avatar-image" className={className} {...props} />
 }
 
 function AvatarFallback({
@@ -173,64 +141,28 @@ function AvatarFallback({
   ...props
 }: AvatarPrimitive.Fallback.Props) {
   const abbr = twoLetterAbbreviation(children)
-  const bgClass = permawebAvatarBackgroundClass(abbr)
+  const bg = permawebAvatarBackground(abbr)
   return (
-    <AvatarPrimitive.Fallback
+    <S.Fallback
       data-slot="avatar-fallback"
-      className={cn(
-        "absolute inset-0 flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-[inherit] p-0 text-center",
-        bgClass,
-        className
-      )}
+      className={className}
+      $background={bg}
       {...props}
     >
-      <div className="absolute inset-0 flex items-center justify-center py-[8%]">
+      <S.FigurineWrap>
         <PermawebHumanFigurine />
-      </div>
-      <span
-        data-slot="avatar-abbr"
-        className={cn(
-          "pointer-events-none absolute left-1/2 z-[1] -translate-x-1/2 font-medium uppercase leading-none tracking-wide text-white",
-          "top-[38%] -translate-y-1/2",
-          "drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]",
-          "group-data-[size=sm]/avatar:text-[8px]",
-          "group-data-[size=default]/avatar:text-[11px]",
-          "group-data-[size=lg]/avatar:text-[13px]"
-        )}
-      >
-        {abbr}
-      </span>
-    </AvatarPrimitive.Fallback>
+      </S.FigurineWrap>
+      <S.Abbr data-slot="avatar-abbr">{abbr}</S.Abbr>
+    </S.Fallback>
   )
 }
 
 function AvatarBadge({ className, ...props }: React.ComponentProps<"span">) {
-  return (
-    <span
-      data-slot="avatar-badge"
-      className={cn(
-        "absolute right-0 bottom-0 z-10 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground bg-blend-color ring-2 ring-background select-none",
-        "group-data-[size=sm]/avatar:size-2 group-data-[size=sm]/avatar:[&>svg]:hidden",
-        "group-data-[size=default]/avatar:size-2.5 group-data-[size=default]/avatar:[&>svg]:size-2",
-        "group-data-[size=lg]/avatar:size-3 group-data-[size=lg]/avatar:[&>svg]:size-2",
-        className
-      )}
-      {...props}
-    />
-  )
+  return <S.Badge data-slot="avatar-badge" className={className} {...props} />
 }
 
 function AvatarGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="avatar-group"
-      className={cn(
-        "group/avatar-group flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-background",
-        className
-      )}
-      {...props}
-    />
-  )
+  return <S.Group data-slot="avatar-group" className={className} {...props} />
 }
 
 function AvatarGroupCount({
@@ -238,14 +170,7 @@ function AvatarGroupCount({
   ...props
 }: React.ComponentProps<"div">) {
   return (
-    <div
-      data-slot="avatar-group-count"
-      className={cn(
-        "relative flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground ring-2 ring-background group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6 [&>svg]:size-4 group-has-data-[size=lg]/avatar-group:[&>svg]:size-5 group-has-data-[size=sm]/avatar-group:[&>svg]:size-3",
-        className
-      )}
-      {...props}
-    />
+    <S.GroupCount data-slot="avatar-group-count" className={className} {...props} />
   )
 }
 
