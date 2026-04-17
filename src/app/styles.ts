@@ -134,6 +134,10 @@ const baseRules = css`
     font-family: var(--font-sans);
   }
 
+  textarea {
+    resize: none;
+  }
+
   body,
   #root {
     min-height: 100svh;

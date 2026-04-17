@@ -2,7 +2,7 @@
 
 import { Tooltip as TooltipParts } from "@base-ui/react/tooltip"
 
-import * as S from "./tooltip.styles"
+import * as S from "./styles"
 
 function TooltipProvider({
   delay = 0,

@@ -3,7 +3,7 @@ import styled, { css } from "styled-components"
 export const StatRowListDl = styled.dl`
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.3125rem;
 `
 
 export const StatRowListUl = styled.ul`
@@ -12,7 +12,7 @@ export const StatRowListUl = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.3125rem;
 `
 
 /**
@@ -21,15 +21,15 @@ export const StatRowListUl = styled.ul`
  * `StatRow` wrapper (which is opaque to styled-components v6 `as` polymorphism).
  */
 export const statRowShellCss = ($striped?: boolean) => css`
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
   @media (min-width: 640px) {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
   }
   ${$striped &&
   css`

@@ -1,9 +1,9 @@
 import styled, { css } from "styled-components"
 import { Link } from "react-router-dom"
 
-import { Avatar, AvatarFallback } from "components/ui/avatar"
-import { Button } from "components/ui/button"
-import { DialogContent } from "components/ui/dialog"
+import { Avatar, AvatarFallback } from "components/atoms/Avatar"
+import { Button } from "components/atoms/Button"
+import { DialogContent } from "components/atoms/Dialog"
 
 const tabular = css`
   font-variant-numeric: tabular-nums;
@@ -16,9 +16,9 @@ export const HeaderInner = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0.375rem 0.375rem;
   @media (min-width: 640px) {
-    padding-inline: 1.5rem;
+    padding: 0.5rem 1.5rem;
   }
 `
 
@@ -43,6 +43,20 @@ export const HeaderActions = styled.div`
   display: flex;
   flex-shrink: 0;
   align-items: center;
+  gap: 0.5rem;
+`
+
+export const HeaderTextButton = styled(Button).attrs({
+  type: "button",
+  variant: "ghost",
+  size: "sm",
+})`
+  height: auto;
+  min-height: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-md);
 `
 
 export const FeedMain = styled.main`
@@ -50,7 +64,7 @@ export const FeedMain = styled.main`
   z-index: 0;
   margin-inline: auto;
   max-width: 48rem;
-  padding: 0.375rem 1rem 4rem;
+  padding: 0.375rem 0.375rem 4rem;
   @media (min-width: 640px) {
     padding-inline: 1.5rem;
     padding-top: 0.75rem;
@@ -85,8 +99,12 @@ export const FeedCard = styled.div`
   cursor: pointer;
   overflow: hidden;
   border-radius: var(--radius-xl);
-  padding: 1.5rem;
+  padding: 0.75rem;
   transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  @media (min-width: 640px) {
+    padding: 1.5rem;
+  }
 
   &:hover {
     background-color: color-mix(
@@ -152,7 +170,7 @@ export const CardMetaSection = styled.div`
 
 export const CardMetaRow = styled.div`
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
   @media (min-width: 640px) {
@@ -165,7 +183,7 @@ export const CardMetaLeft = styled.div`
   display: flex;
   min-width: 0;
   flex: 1 1 0%;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.5rem;
   @media (min-width: 640px) {
     gap: 0.75rem;
@@ -197,15 +215,19 @@ export const BuilderAvatarFallback = styled(AvatarFallback)`
 `
 
 export const CardTextCol = styled.div`
+  display: flex;
   min-width: 0;
   flex: 1 1 0%;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: stretch;
 `
 
 export const CardTitleRow = styled.div`
   display: flex;
   min-width: 0;
   flex-wrap: nowrap;
-  align-items: baseline;
+  align-items: center;
   column-gap: 0.5rem;
   @media (min-width: 640px) {
     column-gap: 0.625rem;
@@ -271,34 +293,25 @@ export const CardToolbar = styled.div`
   pointer-events: auto;
 `
 
-export const SplitButtonGroup = styled.div`
-  display: flex;
-  min-width: 0;
-  flex-shrink: 0;
-  align-items: stretch;
-  overflow: hidden;
-  border-radius: 9999px;
-`
-
 const feedGhostToolbarButtonCss = css`
   height: 2.25rem;
   min-height: 2.25rem;
   flex-shrink: 0;
   column-gap: 0.375rem;
-  border-radius: 0;
+  border-radius: 9999px;
   border: 0;
   padding-inline: 0.625rem;
   color: var(--muted-foreground);
   background: transparent;
   text-decoration: none;
 
-  &:hover {
-    background: transparent !important;
+  &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--foreground) 10%, transparent) !important;
     color: var(--foreground);
   }
 
-  .dark &:hover {
-    background: transparent !important;
+  .dark &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--foreground) 14%, transparent) !important;
   }
 
   @media (min-width: 640px) {
@@ -309,8 +322,6 @@ const feedGhostToolbarButtonCss = css`
 
 export const FeedCommentLinkButton = styled(Button)`
   ${feedGhostToolbarButtonCss};
-  border-top-left-radius: 9999px;
-  border-bottom-left-radius: 9999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -320,8 +331,6 @@ export const FeedRemixToggleButton = styled(Button).withConfig({
   shouldForwardProp: (prop) => prop !== "$remixOpen",
 })<{ $remixOpen?: boolean }>`
   ${feedGhostToolbarButtonCss};
-  border-top-right-radius: 9999px;
-  border-bottom-right-radius: 9999px;
 
   ${(p) =>
     p.$remixOpen &&
@@ -367,57 +376,36 @@ export const VoteGroup = styled.div`
   align-items: center;
   gap: 0;
   overflow: hidden;
-  border-radius: 9999px;
+  /* CardMetaLeft uses pointer-events: none so the card link receives clicks; keep voting interactive. */
+  pointer-events: auto;
 `
 
-export const VoteIconBtn = styled.button<{ $active?: boolean; $tone?: "up" | "down" }>`
+export const VoteIconBtn = styled(Button).attrs({ type: "button" })`
   display: inline-flex;
-  height: 2.25rem;
-  width: 1.5rem;
+  box-sizing: border-box;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
-  padding-inline: 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted-foreground);
-  cursor: pointer;
+  border-radius: 50%;
+  padding: 0;
   transition: color 150ms ease, background-color 150ms ease;
 
-  &:hover {
-    background: transparent;
-    color: var(--foreground);
-  }
-
-  .dark &:hover {
-    background: transparent;
-  }
-
-  ${(p) =>
-    p.$active &&
-    p.$tone === "up" &&
-    css`
-      color: var(--color-alt-green-deep);
-    `}
-
-  ${(p) =>
-    p.$active &&
-    p.$tone === "down" &&
-    css`
-      color: var(--color-alt-red-deep);
-    `}
-
   @media (min-width: 640px) {
-    height: 2.5rem;
-    width: 1.75rem;
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
   }
 `
 
 export const VoteArrowWrap = styled.span`
   display: inline-flex;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
   align-items: center;
   justify-content: center;
 
@@ -427,8 +415,8 @@ export const VoteArrowWrap = styled.span`
   }
 
   @media (min-width: 640px) {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.4375rem;
+    height: 1.4375rem;
   }
 `
 
@@ -495,237 +483,6 @@ export const CommentList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-`
-
-export const CommentRow = styled.li<{ $highlighted?: boolean }>`
-  display: flex;
-  gap: 0.5rem;
-  border-radius: var(--radius-lg);
-  padding: 0.125rem 0.25rem;
-  transition: box-shadow 150ms ease, background-color 150ms ease;
-
-  ${(p) =>
-    p.$highlighted &&
-    css`
-      background: color-mix(in oklab, oklch(0.75 0.12 230) 90%, transparent);
-      box-shadow:
-        0 0 0 2px color-mix(in oklab, oklch(0.7 0.15 230) 50%, transparent),
-        0 0 0 4px var(--background);
-
-      .dark & {
-        background: color-mix(in oklab, oklch(0.35 0.08 230) 40%, transparent);
-        box-shadow: 0 0 0 2px color-mix(in oklab, oklch(0.55 0.12 230) 40%, transparent),
-          0 0 0 4px var(--background);
-      }
-    `}
-`
-
-export const CommentAvatar = styled(Avatar)`
-  width: 1.75rem;
-  height: 1.75rem;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-`
-
-export const CommentAvatarFallback = styled(AvatarFallback)`
-  border-radius: var(--radius-md);
-  font-size: 10px;
-`
-
-export const CommentBodyCol = styled.div`
-  min-width: 0;
-  flex: 1 1 0%;
-`
-
-export const CommentHeaderRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  @media (min-width: 640px) {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-`
-
-export const CommentAuthorRow = styled.div`
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: 0.5rem;
-  row-gap: 0.125rem;
-  font-size: 0.75rem;
-  line-height: 1rem;
-`
-
-export const CommentAuthorName = styled.span`
-  font-weight: 500;
-  color: var(--foreground);
-`
-
-export const CommentTime = styled.span`
-  color: var(--muted-foreground);
-`
-
-type VoteMarkTone = "up" | "down" | "neutral"
-
-export const CommentVoteMark = styled.span<{ $tone: VoteMarkTone }>`
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 500;
-  ${tabular};
-
-  @media (min-width: 640px) {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-  }
-
-  ${(p) =>
-    p.$tone === "up" &&
-    css`
-      color: var(--color-alt-green-deep);
-    `}
-  ${(p) =>
-    p.$tone === "down" &&
-    css`
-      color: var(--color-alt-red-deep);
-    `}
-  ${(p) =>
-    p.$tone === "neutral" &&
-    css`
-      color: var(--muted-foreground);
-    `}
-`
-
-export const CommentBodyText = styled.p`
-  margin: 0.125rem 0 0;
-  font-size: 0.875rem;
-  line-height: 1.625;
-  color: color-mix(in oklab, var(--foreground) 90%, transparent);
-`
-
-export const RemixStudioPreviewLink = styled(Link)`
-  position: relative;
-  margin-top: 0.5rem;
-  display: block;
-  width: 5rem;
-  height: 3rem;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  border: 1px solid rgb(0 0 0 / 8%);
-  background: var(--muted);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-  outline: none;
-  transition:
-    opacity 150ms ease,
-    box-shadow 150ms ease;
-
-  .dark & {
-    border-color: rgb(255 255 255 / 12%);
-  }
-
-  &:hover {
-    opacity: 0.95;
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 35%, transparent);
-  }
-
-  &:focus-visible {
-    box-shadow: 0 0 0 2px var(--ring);
-  }
-`
-
-export const RemixPreviewIframe = styled.iframe`
-  pointer-events: none;
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: block;
-  border: 0;
-`
-
-export const RemixActionsRow = styled.div`
-  margin-top: 0.5rem;
-  display: flex;
-  width: 100%;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-`
-
-export const RemixViewAppLink = styled(Link)`
-  font-size: 11px;
-  line-height: 1rem;
-  font-weight: 500;
-  color: oklch(0.45 0.12 230);
-  text-underline-offset: 2px;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-
-  .dark & {
-    color: oklch(0.78 0.1 230);
-  }
-`
-
-export const RemixOutlineButton = styled(Button)`
-  height: 1.75rem;
-  padding-inline: 0.625rem;
-  font-size: 11px;
-  line-height: 1rem;
-  font-weight: 500;
-`
-
-export const CommentForm = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  @media (min-width: 640px) {
-    flex-direction: row;
-    align-items: flex-end;
-  }
-`
-
-export const CommentTextarea = styled.textarea`
-  min-height: 72px;
-  width: 100%;
-  flex: 1 1 0%;
-  resize: vertical;
-  border-radius: var(--radius-xl);
-  border: 1px solid rgb(0 0 0 / 8%);
-  background: #fff;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: var(--foreground);
-  outline: none;
-  box-shadow: 0 0 0 0 transparent;
-
-  &::placeholder {
-    color: var(--muted-foreground);
-  }
-
-  &:focus-visible {
-    border-color: var(--ring);
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 30%, transparent);
-  }
-
-  .dark & {
-    border-color: rgb(255 255 255 / 12%);
-    background: var(--background);
-  }
-`
-
-export const CommentSubmitButton = styled(Button)`
-  flex-shrink: 0;
-  @media (min-width: 640px) {
-    margin-bottom: 0.125rem;
-  }
 `
 
 export const RemixDialogContent = styled(DialogContent)`
@@ -960,11 +717,11 @@ export const StickyHeader = styled.header`
   position: sticky;
   top: 0;
   z-index: 30;
-  border-bottom: 1px solid rgb(0 0 0 / 6%);
-  background: color-mix(in oklab, white 92%, transparent);
-  backdrop-filter: blur(12px);
+  border: none;
+  box-shadow: none;
+  /* Solid page background — translucent + blur can read as a hairline under the header */
+  background: #ffffff;
   .dark & {
-    border-color: rgb(255 255 255 / 8%);
-    background: color-mix(in oklab, var(--background) 92%, transparent);
+    background: var(--background);
   }
 `

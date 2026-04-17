@@ -8,6 +8,9 @@ type BtnVariant =
   | "ghost"
   | "destructive"
   | "link"
+  | "vote"
+
+type BtnVoteDirection = "up" | "down"
 
 type BtnSize =
   | "default"
@@ -19,7 +22,40 @@ type BtnSize =
   | "icon-sm"
   | "icon-lg"
 
-const variantCss: Record<BtnVariant, ReturnType<typeof css>> = {
+const voteBaseCss = css`
+  background: transparent;
+  color: var(--muted-foreground);
+`
+
+const voteUpToneCss = css`
+  &:hover:not(:disabled),
+  &[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--color-alt-green-mint) 42%, transparent);
+    color: var(--color-alt-green-deep);
+  }
+
+  .dark &:hover:not(:disabled),
+  .dark &[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--color-alt-green-mint) 52%, transparent);
+    color: var(--color-alt-green-deep);
+  }
+`
+
+const voteDownToneCss = css`
+  &:hover:not(:disabled),
+  &[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--color-alt-red-salmon) 42%, transparent);
+    color: var(--color-alt-red-deep);
+  }
+
+  .dark &:hover:not(:disabled),
+  .dark &[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--color-alt-red-salmon) 52%, transparent);
+    color: var(--color-alt-red-deep);
+  }
+`
+
+const variantCss: Record<Exclude<BtnVariant, "vote">, ReturnType<typeof css>> = {
   default: css`
     background: var(--primary);
     color: var(--primary-foreground);
@@ -55,14 +91,21 @@ const variantCss: Record<BtnVariant, ReturnType<typeof css>> = {
     }
   `,
   ghost: css`
+    background: transparent;
+
     &:hover:not(:disabled),
     &[aria-expanded="true"] {
-      background: var(--muted);
+      background: color-mix(in oklab, var(--foreground) 10%, transparent);
       color: var(--foreground);
     }
+
+    .dark & {
+      background: transparent;
+    }
+
     .dark &:hover:not(:disabled),
     .dark &[aria-expanded="true"] {
-      background: color-mix(in oklab, var(--muted) 50%, transparent);
+      background: color-mix(in oklab, var(--foreground) 14%, transparent);
     }
   `,
   destructive: css`
@@ -164,6 +207,7 @@ const sizeCss: Record<BtnSize, ReturnType<typeof css>> = {
 export const StyledButton = styled(ButtonPrimitive)<{
   $variant: BtnVariant
   $size: BtnSize
+  $voteDirection?: BtnVoteDirection
 }>`
   box-sizing: border-box;
   display: inline-flex;
@@ -217,8 +261,14 @@ export const StyledButton = styled(ButtonPrimitive)<{
     height: 1rem;
   }
 
-  ${({ $variant }) => variantCss[$variant]}
+  ${({ $variant, $voteDirection }) =>
+    $variant === "vote"
+      ? css`
+          ${voteBaseCss}
+          ${$voteDirection === "down" ? voteDownToneCss : voteUpToneCss}
+        `
+      : variantCss[$variant]}
   ${({ $size }) => sizeCss[$size]}
 `
 
-export type { BtnSize, BtnVariant }
+export type { BtnSize, BtnVariant, BtnVoteDirection }

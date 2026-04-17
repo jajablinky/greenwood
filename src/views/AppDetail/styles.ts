@@ -1,14 +1,14 @@
 import styled, { css } from "styled-components"
 import { Link } from "react-router-dom"
 
-import { Avatar, AvatarFallback } from "components/ui/avatar"
-import { Button } from "components/ui/button"
+import { Avatar, AvatarFallback } from "components/atoms/Avatar"
+import { Button } from "components/atoms/Button"
+import { statRowShellCss } from "components/molecules/StatRow"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "components/atoms/Tabs"
 import {
-  StatRow,
-  StatRowList,
-  statRowShellCss,
-} from "components/molecules/StatRow"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "components/ui/tabs"
+  InlineComposerFab,
+  InlineComposerTextarea,
+} from "components/molecules/CommentThread/styles"
 
 const tabular = css`
   font-variant-numeric: tabular-nums;
@@ -27,25 +27,24 @@ export const StickyHeader = styled.header`
   position: sticky;
   top: 0;
   z-index: 30;
-  border-bottom: 1px solid rgb(0 0 0 / 6%);
-  background: color-mix(in oklab, white 92%, transparent);
-  backdrop-filter: blur(12px);
+  border: none;
+  box-shadow: none;
+  background: #ffffff;
   .dark & {
-    border-color: rgb(255 255 255 / 8%);
-    background: color-mix(in oklab, var(--background) 92%, transparent);
+    background: var(--background);
   }
 `
 
 export const HeaderInner = styled.div`
   margin-inline: auto;
   display: flex;
-  max-width: 72rem;
+  max-width: 48rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0.375rem 0.375rem;
   @media (min-width: 640px) {
-    padding-inline: 1.5rem;
+    padding: 0.5rem 1.5rem;
   }
 `
 
@@ -87,7 +86,7 @@ export const HeaderTitle = styled.span`
 
 export const DetailMain = styled.main`
   margin-inline: auto;
-  max-width: 72rem;
+  max-width: 48rem;
   padding: 1rem;
   @media (min-width: 640px) {
     padding-inline: 1.5rem;
@@ -97,9 +96,6 @@ export const DetailMain = styled.main`
 export const DetailGrid = styled.div`
   display: grid;
   gap: 1.25rem;
-  @media (min-width: 1024px) {
-    grid-template-columns: minmax(0, 1fr) 340px;
-  }
 `
 
 export const PrimaryColumn = styled.section`
@@ -124,21 +120,25 @@ export const PreviewIframe = styled.iframe`
 export const HeroMetaRow = styled.div`
   margin-top: 0.75rem;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 `
 
 export const HeroTextCol = styled.div`
+  display: flex;
   min-width: 0;
   flex: 1 1 0%;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: stretch;
 `
 
 export const TitleRow = styled.div`
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   column-gap: 0.5rem;
   row-gap: 0.25rem;
   @media (min-width: 640px) {
@@ -182,10 +182,7 @@ export const HeroActions = styled.div`
   flex-shrink: 0;
   align-items: center;
   column-gap: 0.375rem;
-  align-self: flex-start;
-  @media (min-width: 640px) {
-    align-self: center;
-  }
+  align-self: center;
 `
 
 export const DetailRemixJumpButton = styled(Button)`
@@ -203,13 +200,13 @@ export const DetailRemixJumpButton = styled(Button)`
   align-items: center;
   justify-content: center;
 
-  &:hover {
-    background: transparent !important;
+  &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--foreground) 10%, transparent) !important;
     color: var(--foreground);
   }
 
-  .dark &:hover {
-    background: transparent !important;
+  .dark &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--foreground) 14%, transparent) !important;
   }
 
   @media (min-width: 640px) {
@@ -241,57 +238,34 @@ export const VoteGroup = styled.div`
   align-items: center;
   gap: 0;
   overflow: hidden;
-  border-radius: 9999px;
 `
 
-export const VoteIconBtn = styled.button<{ $active?: boolean; $tone?: "up" | "down" }>`
+export const VoteIconBtn = styled(Button).attrs({ type: "button" })`
   display: inline-flex;
+  box-sizing: border-box;
+  width: 2.25rem;
   height: 2.25rem;
-  width: 1.5rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
-  padding-inline: 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted-foreground);
-  cursor: pointer;
+  border-radius: 50%;
+  padding: 0;
   transition: color 150ms ease, background-color 150ms ease;
 
-  &:hover {
-    background: transparent;
-    color: var(--foreground);
-  }
-
-  .dark &:hover {
-    background: transparent;
-  }
-
-  ${(p) =>
-    p.$active &&
-    p.$tone === "up" &&
-    css`
-      color: var(--color-alt-green-deep);
-    `}
-
-  ${(p) =>
-    p.$active &&
-    p.$tone === "down" &&
-    css`
-      color: var(--color-alt-red-deep);
-    `}
-
   @media (min-width: 640px) {
+    width: 2.5rem;
     height: 2.5rem;
-    width: 1.75rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
   }
 `
 
 export const VoteArrowWrap = styled.span`
   display: inline-flex;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1rem;
+  height: 1rem;
   align-items: center;
   justify-content: center;
 
@@ -301,8 +275,8 @@ export const VoteArrowWrap = styled.span`
   }
 
   @media (min-width: 640px) {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1rem;
+    height: 1rem;
   }
 `
 
@@ -372,102 +346,23 @@ export const DetailTabsTrigger = styled(TabsTrigger)`
   }
 `
 
-export const TabsPanelComments = styled(TabsContent)`
+export const TabsPanelComments = styled(TabsContent).attrs({
+  id: "comments",
+})`
   margin-top: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0;
 `
 
-export const CommentComposerShell = styled.div`
-  position: relative;
-`
-
-export const CommentComposerTextarea = styled.textarea`
-  min-height: 88px;
+/** Comments-only layout (tabs hidden). Keeps #comments for deep links. */
+export const CommentsSection = styled.section`
+  margin-top: 1rem;
+  display: flex;
   width: 100%;
-  resize: vertical;
-  border-radius: var(--radius-2xl);
-  border: 0;
-  background: #fff;
-  padding: 0.625rem 3rem 0.75rem 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: var(--foreground);
-  outline: none;
-  box-shadow: none;
-
-  &::placeholder {
-    color: var(--muted-foreground);
-  }
-
-  &:focus-visible {
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 30%, transparent);
-  }
-
-  .dark & {
-    background: var(--background);
-  }
-`
-
-export const PostCommentFab = styled.button`
-  position: absolute;
-  right: 0.625rem;
-  top: 0.625rem;
-  display: inline-flex;
-  width: 2.25rem;
-  height: 2.25rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  border: 0;
-  background: color-mix(in oklab, var(--foreground) 10%, transparent);
-  color: var(--foreground);
-  box-shadow: none;
-  outline: none;
-  cursor: pointer;
-  transition:
-    transform 120ms ease,
-    background-color 150ms ease,
-    opacity 150ms ease;
-
-  &:hover {
-    background: color-mix(in oklab, var(--foreground) 16%, transparent);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:focus-visible {
-    box-shadow:
-      0 0 0 2px var(--ring),
-      0 0 0 4px var(--background);
-  }
-
-  &:disabled {
-    pointer-events: none;
-    opacity: 0.35;
-  }
-
-  .dark & {
-    background: rgb(255 255 255 / 12%);
-  }
-
-  .dark &:hover {
-    background: rgb(255 255 255 / 18%);
-  }
-`
-
-export const PostCommentFabIcon = styled.span`
-  display: inline-flex;
-  width: 1rem;
-  height: 1rem;
-
-  & > svg {
-    width: 100%;
-    height: 100%;
-  }
+  min-width: 0;
+  flex-direction: column;
+  gap: 0;
 `
 
 export const EmptyComments = styled.div`
@@ -511,63 +406,13 @@ export const EmptyCommentsHint = styled.p`
   color: var(--muted-foreground);
 `
 
-export const CommentsStatRowList = styled(StatRowList).attrs({ as: "ul" })`
-  margin-top: 1.5rem;
-`
-
-export const CommentStatRow = styled(StatRow).attrs({ as: "li" })`
-  display: flex;
-  gap: 0.5rem;
-`
-
-export const CommentAvatar = styled(Avatar)`
-  aspect-ratio: 1;
-  width: 1.75rem;
-  height: 1.75rem;
-  flex-shrink: 0;
-  border-radius: 9999px;
-
-  &::after {
-    border-radius: 9999px;
-  }
-`
-
-export const CommentAvatarFallback = styled(AvatarFallback)`
-  border-radius: inherit;
-  font-size: 10px;
-`
-
-export const CommentBlock = styled.div`
-  min-width: 0;
-  flex: 1 1 0%;
-`
-
-export const CommentMeta = styled.p`
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  color: var(--muted-foreground);
-`
-
-export const CommentAuthor = styled.span`
-  font-weight: 500;
-  color: var(--foreground);
-`
-
-export const CommentBody = styled.p`
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: color-mix(in oklab, var(--foreground) 90%, transparent);
-`
-
 export const TabsPanelPlain = styled(TabsContent)`
   margin-top: 1rem;
 `
 
 /**
  * Shared flex layout for every tab row. Pairs with `statRowShellCss` below so
- * Details / Holders / Activity all get the same padding, striping, and height.
+ * Details / Holders / Activity share the same padding and alignment.
  */
 const detailTabsRowLayout = css`
   display: flex;
@@ -576,7 +421,7 @@ const detailTabsRowLayout = css`
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 3.5rem;
+  min-height: 0;
 `
 
 /** Row for Details (nested inside a `<dl>`). */
@@ -591,7 +436,7 @@ export const DetailTabsStatRowLi = styled.li<{ $striped?: boolean }>`
   ${detailTabsRowLayout}
 `
 
-/** Primary cluster (rank, avatar, name, or trader + avatar) — flexes like the details label column. */
+/** Primary cluster (avatar, name, or trader + avatar) — flexes like the details label column. */
 export const TabRowLead = styled.div`
   display: flex;
   min-width: 0;
@@ -612,13 +457,6 @@ export const TabActivityTrail = styled.div`
     grid-template-columns: 3rem 4.25rem 4.5rem 3rem;
     column-gap: 1rem;
   }
-`
-
-export const HolderRank = styled.span`
-  width: 1.25rem;
-  flex-shrink: 0;
-  ${tabular};
-  color: var(--muted-foreground);
 `
 
 export const HolderAvatar = styled(Avatar)`
@@ -758,13 +596,17 @@ export const ContractValueRow = styled.span`
   ${tabular};
 `
 
-export const CopyIconButton = styled.button`
+export const CopyIconButton = styled(Button).attrs({
+  type: "button",
+  variant: "ghost",
+  size: "icon-xs",
+})`
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
   border-radius: var(--radius-sm);
   padding: 0.125rem;
-  border: 0;
-  background: transparent;
-  color: var(--muted-foreground);
-  cursor: pointer;
 
   &:hover {
     color: var(--foreground);
@@ -785,6 +627,13 @@ export const CopyIcon = styled.span`
 export const RemixAside = styled.aside`
   min-width: 0;
   scroll-margin-top: 6rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(0 0 0 / 8%);
+
+  .dark & {
+    border-color: rgb(255 255 255 / 12%);
+  }
 `
 
 export const RemixAsideTitle = styled.h2`
@@ -871,3 +720,166 @@ export const RemixCardVotes = styled.p`
   ${tabular};
   color: var(--muted-foreground);
 `
+
+/** Create mode + focus-within: context pill, round send; textarea stays flush with page (no fill). */
+export const DetailComposerWrapper = styled.div`
+  ${InlineComposerTextarea} {
+    background: transparent;
+  }
+
+  .dark & ${InlineComposerTextarea} {
+    background: transparent;
+  }
+
+  &[data-create-mode="true"]:focus-within .detail-create-context-tag {
+    display: inline-flex;
+  }
+
+  &[data-create-mode="true"]:focus-within ${InlineComposerFab} {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-height: 2.5rem;
+    border-radius: 50%;
+    background: oklch(0.97 0 0);
+    color: var(--muted-foreground);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  }
+
+  &[data-create-mode="true"]:focus-within ${InlineComposerFab}:hover:not(:disabled) {
+    background: oklch(0.94 0 0);
+    color: var(--foreground);
+  }
+
+  .dark &[data-create-mode="true"]:focus-within ${InlineComposerFab} {
+    background: oklch(0.27 0 0);
+    color: var(--muted-foreground);
+    box-shadow: none;
+  }
+
+  .dark &[data-create-mode="true"]:focus-within ${InlineComposerFab}:hover:not(:disabled) {
+    background: oklch(0.32 0 0);
+    color: var(--foreground);
+  }
+`
+
+export const DetailComposerFieldRow = styled.div`
+  position: relative;
+`
+
+export const DetailCreateContextTag = styled.div.attrs({
+  className: "detail-create-context-tag",
+})`
+  display: none;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.5rem;
+  max-width: 100%;
+  padding: 0.28rem 0.65rem 0.28rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-permaweb-blue-4-light);
+  color: var(--color-permaweb-blue-1-deep);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+
+  .dark & {
+    background: color-mix(
+      in oklab,
+      var(--color-permaweb-blue-1-deep) 28%,
+      var(--card)
+    );
+    color: var(--color-permaweb-blue-3-baby);
+  }
+`
+
+export const DetailCreateContextIcon = styled.span`
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 0.8125rem;
+  height: 0.8125rem;
+
+  & > svg {
+    width: 100%;
+    height: 100%;
+  }
+`
+
+export const DetailCreateContextText = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`
+
+export const ThoughtPanel = styled.div`
+  margin-bottom: 0.75rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--muted);
+  padding: 0.5rem 0.65rem;
+`
+
+export const ThoughtPanelLabel = styled.div`
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin-bottom: 0.35rem;
+`
+
+export const ThoughtPre = styled.pre`
+  margin: 0;
+  max-height: 12rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--foreground);
+`
+
+export const OuroRemixStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`
+
+export const OuroRemixHint = styled.p`
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+`
+
+export const OuroRemixTextarea = styled.textarea`
+  width: 100%;
+  resize: none;
+  min-height: 5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.5rem 0.65rem;
+  outline: none;
+
+  &:focus {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 25%, transparent);
+  }
+`
+
+export const OuroRemixButton = styled(Button)`
+  align-self: flex-start;
+`
+
+export {
+  InlineComposerFab as PostCommentFab,
+  InlineComposerFabIcon as PostCommentFabIcon,
+  InlineComposerFabLabel as PostCommentFabLabel,
+  InlineComposerShell as CommentComposerShell,
+  InlineComposerTextarea as CommentComposerTextarea,
+} from "components/molecules/CommentThread/styles"

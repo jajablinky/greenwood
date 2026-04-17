@@ -1,7 +1,7 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import styled from "styled-components"
 
-import { Button } from "components/ui/button"
+import { Button } from "components/atoms/Button"
 
 export const Overlay = styled(DialogPrimitive.Backdrop)`
   position: fixed;
@@ -31,6 +31,7 @@ export const Popup = styled(DialogPrimitive.Popup)`
   left: 50%;
   z-index: 50;
   display: grid;
+  min-width: 0;
   width: min(100% - 2rem, 28rem);
   max-width: calc(100% - 2rem);
   transform: translate(-50%, -50%) scale(1);
@@ -65,6 +66,10 @@ export const Popup = styled(DialogPrimitive.Popup)`
 
   @media (min-width: 640px) {
     max-width: 28rem;
+  }
+
+  & > * {
+    min-width: 0;
   }
 `
 

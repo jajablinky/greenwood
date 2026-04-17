@@ -12,11 +12,15 @@ import { mockEthereumAddressFromSeed } from "helpers/abbrev-wallet"
 
 export type FeedComment = {
   id: string
+  /** Parent comment id, or `null` for a top-level thread root. */
+  parentId: string | null
   author: string
   authorInitials: string
   body: string
   createdAt: number
-  /** Mock: how the current viewer voted on this comment (read-only in UI). */
+  /** Mock net score from others (display adds the viewer’s vote on top). */
+  score: number
+  /** Mock: how the current viewer voted on this comment. */
   viewerVote: "up" | "down" | null
 }
 
@@ -143,16 +147,29 @@ function seedCommentsForFork(forkId: string, forkCreatedAt: number): FeedComment
   const n = stablePick(forkId, [0, 1, 2, 2, 3] as const)
   const out: FeedComment[] = []
   for (let i = 0; i < n; i++) {
+    const id = `${forkId}-c-${i}`
     const b =
       BUILDERS[
         (i + stablePick(`${forkId}-ci`, [0, 1, 2, 3, 4] as const)) % BUILDERS.length
       ]!
+
+    let parentId: string | null = null
+    if (n >= 2 && i === 1) parentId = `${forkId}-c-0`
+    else if (n >= 3 && i === 2) parentId = `${forkId}-c-0`
+    else if (n >= 4 && i === 3) parentId = `${forkId}-c-1`
+
+    const score = stablePick(`${forkId}-cscore-${i}`, [
+      2, 3, 4, 5, 6, 7, 8, 9, 11, 14, 18, 22, 27, 31, 38, 44, 52,
+    ])
+
     out.push({
-      id: `${forkId}-c-${i}`,
+      id,
+      parentId,
       author: b.name,
       authorInitials: b.initials,
       body: COMMENT_TEMPLATES[(i + forkId.length) % COMMENT_TEMPLATES.length]!,
       createdAt: forkCreatedAt + 120_000 * (i + 1),
+      score,
       viewerVote: stablePick(`${forkId}-vote-${i}`, [
         "up",
         "down",

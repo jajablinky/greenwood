@@ -1,6 +1,6 @@
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
 
-import * as S from "./tabs.styles"
+import * as S from "./styles"
 
 function Tabs({
   className,

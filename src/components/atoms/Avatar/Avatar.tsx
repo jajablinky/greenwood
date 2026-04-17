@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 
-import * as S from "./avatar.styles"
+import * as S from "./styles"
 
 const AVATAR_BG_DEEP = [
   "var(--color-permaweb-red-1-deep)",

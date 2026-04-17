@@ -9,15 +9,20 @@ import {
 import { ArrowUpIcon, MessageSquareIcon, MousePointer2Icon, ShuffleIcon } from "lucide-react"
 import { Link } from "react-router-dom"
 
-import { ConnectWalletButton } from "components/atoms/ConnectWalletButton"
+import { ConnectWalletButton } from "components/molecules/ConnectWalletButton"
 import { FeedPriceCaption } from "components/atoms/FeedPriceCaption"
+import {
+  ProjectStatusPill,
+  type ProjectRunStatus,
+} from "components/atoms/ProjectStatusPill"
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
 import {
   Dialog,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "components/ui/dialog"
+} from "components/atoms/Dialog"
+import { CreateProjectDialog } from "components/molecules/CreateProjectDialog"
 import { activityDetailPath, studioPathForProtocol } from "helpers/app-route-name"
 import {
   INITIAL_ACTIVITY_FEED,
@@ -25,18 +30,32 @@ import {
   type FeedComment,
   type GlobalFeedItem,
 } from "helpers/activity-feed-mock-data"
+import {
+  buildCommentTree,
+  FEED_COMMENT_TOP_N,
+  sortCommentRootsByHot,
+} from "helpers/comment-tree"
+import { formatCount } from "helpers/format-count"
 import { abbreviateWalletAddress } from "helpers/abbrev-wallet"
 import { formatShortTimeAgo } from "helpers/format-short-time-ago"
+import { workspaceSlugFromFeedId } from "helpers/ouro-feed-items"
+import { useProjects } from "providers/ProjectsProvider"
 
+import {
+  CommentThreadNode,
+  type FeedReplyTarget,
+} from "components/molecules/CommentThread"
+import {
+  CommentComposerForm as CommentForm,
+  CommentComposerSubmit as CommentSubmitButton,
+  CommentComposerTextarea as CommentTextarea,
+  OpenDetailCommentsLink,
+  ViewMoreCommentsButton,
+  ViewMoreCommentsRow,
+} from "components/molecules/CommentThread/styles"
 import * as S from "./styles"
 
 type ViewerVote = "up" | "down" | null
-
-function formatCount(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}m`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
-  return `${n}`
-}
 
 /** Feed row title: keep MC visible by capping visible characters (full string in title/aria). */
 const FEED_CARD_TITLE_DISPLAY_MAX = 12
@@ -53,10 +72,6 @@ function newCommentId(): string {
   return `me-${Date.now()}`
 }
 
-function isRemixCommentBody(body: string): boolean {
-  return body.startsWith("Remix:")
-}
-
 function hotScore(item: GlobalFeedItem, viewerDelta: number): number {
   const hours = Math.max(1, (Date.now() - item.createdAt) / 3_600_000)
   return (item.score + viewerDelta) / Math.pow(hours + 2, 1.5)
@@ -68,13 +83,9 @@ function scoreTone(score: number): "positive" | "negative" | "neutral" {
   return "neutral"
 }
 
-function commentVoteMarkTone(vv: ViewerVote): "up" | "down" | "neutral" {
-  if (vv === "up") return "up"
-  if (vv === "down") return "down"
-  return "neutral"
-}
-
 export function ActivityFeedPage() {
+  const { ouroFeedItems, getStatusForSlug } = useProjects()
+  const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const [votes, setVotes] = useState<Record<string, ViewerVote>>({})
   const [commentsByPost, setCommentsByPost] = useState<
     Record<string, FeedComment[]>
@@ -92,6 +103,13 @@ export function ActivityFeedPage() {
     postId: string
     commentId: string
   } | null>(null)
+  const [feedReplyTarget, setFeedReplyTarget] = useState<FeedReplyTarget | null>(
+    null,
+  )
+  const [feedReplyDraft, setFeedReplyDraft] = useState("")
+  const [showAllFeedComments, setShowAllFeedComments] = useState<
+    Record<string, boolean>
+  >({})
 
   useEffect(() => {
     if (!highlightComment) {
@@ -127,7 +145,7 @@ export function ActivityFeedPage() {
   }, [remixListPostId])
 
   const sortedFeed = useMemo(() => {
-    const list = [...INITIAL_ACTIVITY_FEED]
+    const list = [...ouroFeedItems, ...INITIAL_ACTIVITY_FEED]
     const viewerDelta = (id: string) =>
       votes[id] === "up" ? 1 : votes[id] === "down" ? -1 : 0
 
@@ -136,7 +154,7 @@ export function ActivityFeedPage() {
         hotScore(b, viewerDelta(b.id)) - hotScore(a, viewerDelta(a.id))
     )
     return list
-  }, [votes])
+  }, [votes, ouroFeedItems])
 
   const remixListDialogItem = useMemo(
     () =>
@@ -176,10 +194,12 @@ export function ActivityFeedPage() {
       }
       const row: FeedComment = {
         id: newCommentId(),
+        parentId: null,
         author: "you",
         authorInitials: "ME",
         body: raw,
         createdAt: Date.now(),
+        score: 0,
         viewerVote: null,
       }
       setCommentsByPost((prev) => ({
@@ -200,10 +220,12 @@ export function ActivityFeedPage() {
       }
       const row: FeedComment = {
         id: newCommentId(),
+        parentId: null,
         author: "you",
         authorInitials: "ME",
         body: `Remix: ${raw}`,
         createdAt: Date.now(),
+        score: 0,
         viewerVote: null,
       }
       setCommentsByPost((prev) => ({
@@ -218,6 +240,53 @@ export function ActivityFeedPage() {
     [remixText]
   )
 
+  const toggleFeedCommentVote = useCallback(
+    (postId: string, commentId: string, direction: "up" | "down") => {
+      setCommentsByPost((prev) => {
+        const list = prev[postId] ?? []
+        return {
+          ...prev,
+          [postId]: list.map((c) =>
+            c.id === commentId
+              ? {
+                  ...c,
+                  viewerVote: c.viewerVote === direction ? null : direction,
+                }
+              : c,
+          ),
+        }
+      })
+    },
+    []
+  )
+
+  const submitFeedReply = useCallback(
+    (e: FormEvent, postId: string) => {
+      e.preventDefault()
+      const raw = feedReplyDraft.trim()
+      if (!raw || !feedReplyTarget || feedReplyTarget.postId !== postId) {
+        return
+      }
+      const row: FeedComment = {
+        id: newCommentId(),
+        parentId: feedReplyTarget.parentId,
+        author: "you",
+        authorInitials: "ME",
+        body: raw,
+        createdAt: Date.now(),
+        score: 0,
+        viewerVote: null,
+      }
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: [...(prev[postId] ?? []), row],
+      }))
+      setFeedReplyDraft("")
+      setFeedReplyTarget(null)
+    },
+    [feedReplyDraft, feedReplyTarget]
+  )
+
   return (
     <S.Page>
       <S.StickyHeader>
@@ -226,10 +295,21 @@ export function ActivityFeedPage() {
             <S.HeaderBrandLink to="/">PermawebOS</S.HeaderBrandLink>
           </S.HeaderBrandWrap>
           <S.HeaderActions>
+            <S.HeaderTextButton
+              type="button"
+              onClick={() => setCreateProjectOpen(true)}
+            >
+              New project
+            </S.HeaderTextButton>
             <ConnectWalletButton />
           </S.HeaderActions>
         </S.HeaderInner>
       </S.StickyHeader>
+
+      <CreateProjectDialog
+        open={createProjectOpen}
+        onOpenChange={setCreateProjectOpen}
+      />
 
       <S.FeedMain>
         <S.FeedList>
@@ -242,6 +322,10 @@ export function ActivityFeedPage() {
             const detailHref = activityDetailPath(item.id)
             const remixListCount = mockRemixListForItem(item).length
             const cardTitle = item.cardTitle ?? item.appName
+            const ouroSlug = workspaceSlugFromFeedId(item.id)
+            const ouroStatus: ProjectRunStatus | undefined = ouroSlug
+              ? getStatusForSlug(ouroSlug) ?? "idle"
+              : undefined
 
             return (
               <li key={item.id}>
@@ -272,6 +356,33 @@ export function ActivityFeedPage() {
                     <S.CardMetaSection>
                       <S.CardMetaRow>
                         <S.CardMetaLeft>
+                          <S.VoteGroup role="group" aria-label="Vote on this listing">
+                            <S.VoteIconBtn
+                              variant="vote"
+                              voteDirection="up"
+                              aria-label="Upvote"
+                              aria-pressed={v === "up"}
+                              onClick={() => toggleVote(item.id, "up")}
+                            >
+                              <S.VoteArrowWrap>
+                                <VoteBlockArrowUp filled={v === "up"} />
+                              </S.VoteArrowWrap>
+                            </S.VoteIconBtn>
+                            <S.ScoreValue $tone={scoreTone(score)} title="Score">
+                              {formatCount(score)}
+                            </S.ScoreValue>
+                            <S.VoteIconBtn
+                              variant="vote"
+                              voteDirection="down"
+                              aria-label="Downvote"
+                              aria-pressed={v === "down"}
+                              onClick={() => toggleVote(item.id, "down")}
+                            >
+                              <S.VoteArrowWrap>
+                                <VoteBlockArrowDown filled={v === "down"} />
+                              </S.VoteArrowWrap>
+                            </S.VoteIconBtn>
+                          </S.VoteGroup>
                           <S.BuilderAvatar
                             aria-label={`Builder wallet ${item.builderWallet}`}
                             title={item.builderWallet}
@@ -287,6 +398,9 @@ export function ActivityFeedPage() {
                                   {abbreviateFeedCardTitle(cardTitle)}
                                 </S.CardTitleText>
                               </S.CardTitleHeading>
+                              {ouroStatus ? (
+                                <ProjectStatusPill status={ouroStatus} />
+                              ) : null}
                               <FeedPriceCaption
                                 variant="inline"
                                 priceChangePct={item.priceChangePct}
@@ -308,82 +422,48 @@ export function ActivityFeedPage() {
                           </S.CardTextCol>
                         </S.CardMetaLeft>
                         <S.CardToolbar>
-                          <S.SplitButtonGroup
-                            role="group"
-                            aria-label="Comments and remixes"
+                          <S.FeedCommentLinkButton
+                            variant="ghost"
+                            size="sm"
+                            nativeButton={false}
+                            render={<Link to={detailHref} />}
+                            title={`${comments.length} ${comments.length === 1 ? "comment" : "comments"} — open detail`}
+                            aria-label={`Open ${cardTitle} detail — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
                           >
-                            <S.FeedCommentLinkButton
-                              variant="ghost"
-                              size="sm"
-                              nativeButton={false}
-                              render={<Link to={detailHref} />}
-                              title={`${comments.length} ${comments.length === 1 ? "comment" : "comments"} — open detail`}
-                              aria-label={`Open ${cardTitle} detail — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
-                            >
-                              <S.Icon16>
-                                <MessageSquareIcon strokeWidth={2} aria-hidden />
-                              </S.Icon16>
-                              <S.TabularText>
-                                {comments.length > 99 ? "99+" : comments.length}
-                              </S.TabularText>
-                            </S.FeedCommentLinkButton>
-                            <S.FeedRemixToggleButton
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              title={`${remixListCount} remixes — add idea or browse forks`}
-                              aria-label={`Remix ${item.appName}: ${remixListCount} forks, open list and composer`}
-                              aria-expanded={remixListPostId === item.id}
-                              aria-haspopup="dialog"
-                              $remixOpen={remixListPostId === item.id}
-                              onClick={() => {
-                                setRemixListPostId((cur) => {
-                                  if (cur === item.id) {
-                                    setRemixText("")
-                                    return null
-                                  }
+                            <S.Icon16>
+                              <MessageSquareIcon strokeWidth={2} aria-hidden />
+                            </S.Icon16>
+                            <S.TabularText>
+                              {comments.length > 99 ? "99+" : comments.length}
+                            </S.TabularText>
+                          </S.FeedCommentLinkButton>
+                          <S.FeedRemixToggleButton
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            title={`${remixListCount} remixes — add idea or browse forks`}
+                            aria-label={`Remix ${item.appName}: ${remixListCount} forks, open list and composer`}
+                            aria-expanded={remixListPostId === item.id}
+                            aria-haspopup="dialog"
+                            $remixOpen={remixListPostId === item.id}
+                            onClick={() => {
+                              setRemixListPostId((cur) => {
+                                if (cur === item.id) {
                                   setRemixText("")
-                                  return item.id
-                                })
-                              }}
-                            >
-                              <S.Icon16>
-                                <ShuffleIcon strokeWidth={2} aria-hidden />
-                              </S.Icon16>
-                              <S.TabularText>
-                                {remixListCount > 99 ? "99+" : remixListCount}
-                              </S.TabularText>
-                            </S.FeedRemixToggleButton>
-                          </S.SplitButtonGroup>
-                          <S.VoteGroup role="group" aria-label="Vote on this listing">
-                            <S.VoteIconBtn
-                              type="button"
-                              aria-label="Upvote"
-                              aria-pressed={v === "up"}
-                              $active={v === "up"}
-                              $tone="up"
-                              onClick={() => toggleVote(item.id, "up")}
-                            >
-                              <S.VoteArrowWrap>
-                                <VoteBlockArrowUp filled={v === "up"} />
-                              </S.VoteArrowWrap>
-                            </S.VoteIconBtn>
-                            <S.ScoreValue $tone={scoreTone(score)} title="Score">
-                              {formatCount(score)}
-                            </S.ScoreValue>
-                            <S.VoteIconBtn
-                              type="button"
-                              aria-label="Downvote"
-                              aria-pressed={v === "down"}
-                              $active={v === "down"}
-                              $tone="down"
-                              onClick={() => toggleVote(item.id, "down")}
-                            >
-                              <S.VoteArrowWrap>
-                                <VoteBlockArrowDown filled={v === "down"} />
-                              </S.VoteArrowWrap>
-                            </S.VoteIconBtn>
-                          </S.VoteGroup>
+                                  return null
+                                }
+                                setRemixText("")
+                                return item.id
+                              })
+                            }}
+                          >
+                            <S.Icon16>
+                              <ShuffleIcon strokeWidth={2} aria-hidden />
+                            </S.Icon16>
+                            <S.TabularText>
+                              {remixListCount > 99 ? "99+" : remixListCount}
+                            </S.TabularText>
+                          </S.FeedRemixToggleButton>
                         </S.CardToolbar>
                       </S.CardMetaRow>
                     </S.CardMetaSection>
@@ -392,99 +472,77 @@ export function ActivityFeedPage() {
                   {open ? (
                     <S.ThreadPanel>
                       <S.ThreadInner>
-                        <S.CommentList>
-                          {comments.map((c) => {
-                            const vv = c.viewerVote
-                            const voteMark =
-                              vv === "up" ? "+1" : vv === "down" ? "-1" : "0"
-                            const voteAria =
-                              vv === "up"
-                                ? "You upvoted this comment"
-                                : vv === "down"
-                                  ? "You downvoted this comment"
-                                  : "You have not voted on this comment"
-                            return (
-                              <S.CommentRow
-                                key={c.id}
-                                id={`feed-comment-${item.id}-${c.id}`}
-                                $highlighted={
-                                  highlightComment?.postId === item.id &&
-                                  highlightComment.commentId === c.id
-                                }
-                              >
-                                <S.CommentAvatar>
-                                  <S.CommentAvatarFallback>
-                                    {c.authorInitials}
-                                  </S.CommentAvatarFallback>
-                                </S.CommentAvatar>
-                                <S.CommentBodyCol>
-                                  <S.CommentHeaderRow>
-                                    <S.CommentAuthorRow>
-                                      <S.CommentAuthorName>
-                                        {c.author}
-                                      </S.CommentAuthorName>
-                                      <S.CommentTime>
-                                        {formatShortTimeAgo(c.createdAt)}
-                                      </S.CommentTime>
-                                    </S.CommentAuthorRow>
-                                    <S.CommentVoteMark
-                                      $tone={commentVoteMarkTone(vv)}
-                                      aria-label={voteAria}
-                                      title={voteAria}
-                                    >
-                                      {voteMark}
-                                    </S.CommentVoteMark>
-                                  </S.CommentHeaderRow>
-                                  <S.CommentBodyText>{c.body}</S.CommentBodyText>
-                                  {isRemixCommentBody(c.body) ? (
-                                    <>
-                                      <S.RemixStudioPreviewLink
-                                        to={studioHref}
-                                        aria-label={`View ${item.appName} in studio`}
-                                        title={`View ${item.appName} in studio`}
-                                      >
-                                        <S.RemixPreviewIframe
-                                          srcDoc={item.previewHtml}
-                                          sandbox="allow-scripts"
-                                          title=""
-                                          style={{
-                                            width: 400,
-                                            height: 225,
-                                            transform: "scale(0.2)",
-                                            transformOrigin: "0 0",
-                                          }}
-                                        />
-                                      </S.RemixStudioPreviewLink>
-                                      <S.RemixActionsRow>
-                                        <S.RemixViewAppLink to={studioHref}>
-                                          View app
-                                        </S.RemixViewAppLink>
-                                        <S.RemixOutlineButton
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            setRemixText("")
-                                            setRemixListPostId(item.id)
-                                          }}
-                                        >
-                                          Remix
-                                        </S.RemixOutlineButton>
-                                      </S.RemixActionsRow>
-                                    </>
-                                  ) : null}
-                                </S.CommentBodyCol>
-                              </S.CommentRow>
-                            )
-                          })}
-                        </S.CommentList>
-                        <S.CommentForm
-                          onSubmit={(e) => submitComment(e, item.id)}
-                        >
+                        {(() => {
+                          const threadRoots = sortCommentRootsByHot(
+                            buildCommentTree(comments),
+                          )
+                          const expanded = showAllFeedComments[item.id] === true
+                          const hiddenRootCount = Math.max(
+                            0,
+                            threadRoots.length - FEED_COMMENT_TOP_N,
+                          )
+                          const visibleRoots =
+                            expanded ||
+                            threadRoots.length <= FEED_COMMENT_TOP_N
+                              ? threadRoots
+                              : threadRoots.slice(0, FEED_COMMENT_TOP_N)
+                          return (
+                            <>
+                              <S.CommentList>
+                                {visibleRoots.map((node) => (
+                                  <CommentThreadNode
+                                    key={node.id}
+                                    mode="feed"
+                                    node={node}
+                                    feed={{
+                                      postId: item.id,
+                                      item,
+                                      studioHref,
+                                      highlightComment,
+                                      feedReplyTarget,
+                                      setFeedReplyTarget,
+                                      feedReplyDraft,
+                                      setFeedReplyDraft,
+                                      toggleFeedCommentVote,
+                                      submitFeedReply,
+                                      setRemixText,
+                                      setRemixListPostId,
+                                    }}
+                                  />
+                                ))}
+                              </S.CommentList>
+                              {hiddenRootCount > 0 && !expanded ? (
+                                <ViewMoreCommentsRow>
+                                  <ViewMoreCommentsButton
+                                    type="button"
+                                    onClick={() =>
+                                      setShowAllFeedComments((p) => ({
+                                        ...p,
+                                        [item.id]: true,
+                                      }))
+                                    }
+                                  >
+                                    View {hiddenRootCount} more{" "}
+                                    {hiddenRootCount === 1
+                                      ? "thread"
+                                      : "threads"}
+                                  </ViewMoreCommentsButton>
+                                  <OpenDetailCommentsLink
+                                    to={`${detailHref}#comments`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Open full thread
+                                  </OpenDetailCommentsLink>
+                                </ViewMoreCommentsRow>
+                              ) : null}
+                            </>
+                          )
+                        })()}
+                        <CommentForm onSubmit={(e) => submitComment(e, item.id)}>
                           <label className="sr-only" htmlFor={`comment-${item.id}`}>
                             Add a comment
                           </label>
-                          <S.CommentTextarea
+                          <CommentTextarea
                             id={`comment-${item.id}`}
                             rows={2}
                             value={draftByPost[item.id] ?? ""}
@@ -496,10 +554,10 @@ export function ActivityFeedPage() {
                             }
                             placeholder="Add a comment…"
                           />
-                          <S.CommentSubmitButton type="submit" size="sm">
+                          <CommentSubmitButton type="submit" size="sm">
                             Comment
-                          </S.CommentSubmitButton>
-                        </S.CommentForm>
+                          </CommentSubmitButton>
+                        </CommentForm>
                       </S.ThreadInner>
                     </S.ThreadPanel>
                   ) : null}

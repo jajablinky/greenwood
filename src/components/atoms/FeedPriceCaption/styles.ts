@@ -24,9 +24,10 @@ function changeToneCss(change: string) {
 
 export const Root = styled.p<{ $inline: boolean }>`
   display: flex;
+  margin: 0;
   min-width: 0;
   flex-wrap: nowrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: flex-start;
   text-align: left;
   flex-shrink: 0;
@@ -49,7 +50,7 @@ export const Root = styled.p<{ $inline: boolean }>`
 
 export const MarketRow = styled.span<{ $inline: boolean }>`
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--foreground);
