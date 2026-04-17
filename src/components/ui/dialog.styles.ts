@@ -86,7 +86,7 @@ export const Footer = styled.div`
 `
 
 export const Title = styled(DialogPrimitive.Title)`
-  font-family: var(--font-heading, var(--font-sans));
+  font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1;
   font-weight: 500;

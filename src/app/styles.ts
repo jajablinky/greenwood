@@ -44,7 +44,7 @@ const cssVariables = css`
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
-    --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "DM Sans", sans-serif;
     --color-alt-blue-light: oklch(0.9585 0.0225 237.64);
     --color-alt-blue-baby: oklch(0.9266 0.0416 234.82);
     --color-alt-blue-lavender: oklch(0.8452 0.0767 274.89);
@@ -125,7 +125,12 @@ const baseRules = css`
     color: var(--foreground);
   }
 
-  html {
+  html,
+  body,
+  button,
+  input,
+  textarea,
+  select {
     font-family: var(--font-sans);
   }
 

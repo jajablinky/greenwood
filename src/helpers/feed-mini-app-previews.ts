@@ -1,4 +1,4 @@
-/** Self-contained HTML documents for feed preview iframes (no external assets). */
+/** Self-contained HTML documents for feed preview iframes; DM Sans is loaded via Google Fonts in `doc()`. */
 
 function hashString(s: string): number {
   let h = 0
@@ -17,7 +17,7 @@ function escapeHtml(s: string): string {
 }
 
 function doc(bodyInner: string): string {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${bodyInner}</body></html>`
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"></head><body>${bodyInner}</body></html>`
 }
 
 /**
@@ -30,7 +30,7 @@ export function buildBazarStylePreviewHtml(appName: string): string {
   )
   return doc(`<style>
     *{box-sizing:border-box;margin:0}
-    html,body{height:100%;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+    html,body{height:100%;font-family:"DM Sans",sans-serif;-webkit-font-smoothing:antialiased}
     body{background:#eceef2;color:#111827;display:flex;flex-direction:column;min-height:100%}
     .top{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#fff;border-bottom:1px solid #e5e7eb}
     .brand{font-size:14px;font-weight:500;letter-spacing:-.03em;color:#111827}
@@ -59,7 +59,7 @@ export function buildBazarStylePreviewHtml(appName: string): string {
 export function buildLlamalandGamePreviewHtml(): string {
   return doc(`<style>
     *{box-sizing:border-box;margin:0}
-    html,body{height:100%;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+    html,body{height:100%;font-family:"DM Sans",sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
     body{background:linear-gradient(180deg,#7dd3fc 0%,#38bdf8 28%,#86efac 28%,#4ade80 52%,#3f6212 52%,#14532d 100%);display:flex;flex-direction:column;color:#0f172a}
     .bar{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(15,23,42,.82);color:#e0f2fe;font-size:8px;font-weight:500;letter-spacing:.02em}
     .bar span:last-child{font-variant-numeric:tabular-nums;opacity:.95}
@@ -116,7 +116,7 @@ export function buildMiniAppPreviewHtml(forkId: string, appName: string): string
     case 0:
       return doc(`<style>
         *{box-sizing:border-box;margin:0}
-        html,body{height:100%;font-family:ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+        html,body{height:100%;font-family:"DM Sans",sans-serif;-webkit-font-smoothing:antialiased}
         body{background:linear-gradient(165deg,hsl(${hue},36%,97%),hsl(${hue2},28%,94%));padding:10px}
         .g{display:grid;grid-template-columns:1fr 1fr;gap:8px;height:100%}
         .c{background:#fff;border-radius:11px;padding:10px;border:1px solid rgba(15,23,42,.06);box-shadow:0 2px 8px rgba(15,23,42,.06)}
@@ -134,7 +134,7 @@ export function buildMiniAppPreviewHtml(forkId: string, appName: string): string
     case 1:
       return doc(`<style>
         *{box-sizing:border-box;margin:0}
-        html,body{height:100%;font-family:ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+        html,body{height:100%;font-family:"DM Sans",sans-serif;-webkit-font-smoothing:antialiased}
         body{background:linear-gradient(165deg,#f8fafc,hsl(${hue},28%,94%));padding:14px;display:flex;flex-direction:column;justify-content:center;color:#0f172a}
         h1{font-size:15px;font-weight:500;line-height:1.2;letter-spacing:-.02em;color:#0f172a}
         p{margin-top:8px;font-size:10px;color:#475569;line-height:1.45;max-width:28em}
@@ -150,7 +150,7 @@ export function buildMiniAppPreviewHtml(forkId: string, appName: string): string
     case 2:
       return doc(`<style>
         *{box-sizing:border-box;margin:0}
-        html,body{height:100%;font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;-webkit-font-smoothing:antialiased}
+        html,body{height:100%;font-family:"DM Sans",sans-serif;font-size:10px;-webkit-font-smoothing:antialiased}
         body{background:#f1f5f9;color:#0f172a;padding:12px}
         .t{color:#0369a1;font-weight:500;margin-bottom:8px}
         .s{display:flex;align-items:center;gap:8px;margin:10px 0}
@@ -166,7 +166,7 @@ export function buildMiniAppPreviewHtml(forkId: string, appName: string): string
     case 3:
       return doc(`<style>
         *{box-sizing:border-box;margin:0}
-        html,body{height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:#f8fafc;padding:10px;-webkit-font-smoothing:antialiased}
+        html,body{height:100%;font-family:"DM Sans",sans-serif;background:#f8fafc;padding:10px;-webkit-font-smoothing:antialiased}
         .h{font-size:10px;font-weight:500;color:#334155;margin-bottom:8px}
         svg{width:100%;height:72px}
       </style>
@@ -180,7 +180,7 @@ export function buildMiniAppPreviewHtml(forkId: string, appName: string): string
     case 4:
       return doc(`<style>
         *{box-sizing:border-box;margin:0}
-        html,body{height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:hsl(${hue2},25%,94%);padding:12px}
+        html,body{height:100%;font-family:"DM Sans",sans-serif;background:hsl(${hue2},25%,94%);padding:12px}
         .c{background:#fff;border-radius:12px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
         .t{font-size:9px;color:#64748b}
         .a{font-size:20px;font-weight:500;margin-top:4px;color:#0f172a}
@@ -194,7 +194,7 @@ export function buildMiniAppPreviewHtml(forkId: string, appName: string): string
     case 5:
       return doc(`<style>
         *{box-sizing:border-box;margin:0}
-        html,body{height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:linear-gradient(180deg,hsl(${hue3},25%,97%),#fff);padding:12px;-webkit-font-smoothing:antialiased}
+        html,body{height:100%;font-family:"DM Sans",sans-serif;background:linear-gradient(180deg,hsl(${hue3},25%,97%),#fff);padding:12px;-webkit-font-smoothing:antialiased}
         p{font-size:10px;color:#475569;margin-bottom:8px}
         #n{font-size:26px;font-weight:500;color:hsl(${hue},45%,32%)}
         button{margin-top:10px;padding:8px 14px;border:none;border-radius:10px;background:#334155;color:#fff;font-weight:500;font-size:11px;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.08)}
@@ -208,7 +208,7 @@ export function buildMiniAppPreviewHtml(forkId: string, appName: string): string
     default:
       return doc(`<style>
         *{box-sizing:border-box;margin:0}
-        html,body{height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:#f1f5f9;padding:10px}
+        html,body{height:100%;font-family:"DM Sans",sans-serif;background:#f1f5f9;padding:10px}
         .h{font-size:10px;font-weight:500;color:#0f172a;margin-bottom:8px}
         .r{display:flex;gap:6px;flex-wrap:wrap}
         .p{background:#fff;border-radius:8px;padding:8px 10px;font-size:9px;border:1px solid #e2e8f0;box-shadow:0 1px 2px rgba(0,0,0,.04)}

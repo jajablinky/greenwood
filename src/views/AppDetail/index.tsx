@@ -326,18 +326,23 @@ export function AppDetailPage() {
               <S.TabsPanelPlain value="holders">
                 <StatRowList as="ul">
                   {holderRows.map((row, i) => (
-                    <S.HolderStatRow key={row.rank} striped={i % 2 === 1}>
-                      <S.HolderRank>{row.rank}</S.HolderRank>
-                      <S.HolderAvatar>
-                        <S.HolderAvatarFallback>
-                          {row.name.slice(0, 2).toUpperCase()}
-                        </S.HolderAvatarFallback>
-                      </S.HolderAvatar>
-                      <S.HolderName>{row.name}</S.HolderName>
+                    <S.DetailTabsStatRowLi
+                      key={row.rank}
+                      $striped={i % 2 === 1}
+                    >
+                      <S.TabRowLead>
+                        <S.HolderRank>{row.rank}</S.HolderRank>
+                        <S.HolderAvatar>
+                          <S.HolderAvatarFallback>
+                            {row.name.slice(0, 2).toUpperCase()}
+                          </S.HolderAvatarFallback>
+                        </S.HolderAvatar>
+                        <S.HolderName>{row.name}</S.HolderName>
+                      </S.TabRowLead>
                       <S.HolderBadge $tone={row.badge}>
                         {row.pct.toFixed(3)}%
                       </S.HolderBadge>
-                    </S.HolderStatRow>
+                    </S.DetailTabsStatRowLi>
                   ))}
                 </StatRowList>
               </S.TabsPanelPlain>
@@ -345,20 +350,27 @@ export function AppDetailPage() {
               <S.TabsPanelPlain value="activity">
                 <StatRowList as="ul">
                   {activityRows.map((row, i) => (
-                    <S.ActivityStatRow key={`${row.who}-${i}`} striped={i % 2 === 1}>
-                      <S.ActivityWhoCell>
-                        <S.ActivityAvatar>
-                          <S.ActivityAvatarFallback>
-                            {row.who.slice(0, 2).toUpperCase()}
-                          </S.ActivityAvatarFallback>
-                        </S.ActivityAvatar>
-                        <S.ActivityWho>{row.who}</S.ActivityWho>
-                      </S.ActivityWhoCell>
-                      <S.ActivityBuy>Buy</S.ActivityBuy>
-                      <S.ActivityQty>{row.qty}</S.ActivityQty>
-                      <S.ActivityPrice>{row.price}</S.ActivityPrice>
-                      <S.ActivityAgo>{row.ago}</S.ActivityAgo>
-                    </S.ActivityStatRow>
+                    <S.DetailTabsStatRowLi
+                      key={`${row.who}-${i}`}
+                      $striped={i % 2 === 1}
+                    >
+                      <S.TabRowLead>
+                        <S.ActivityWhoCell>
+                          <S.ActivityAvatar>
+                            <S.ActivityAvatarFallback>
+                              {row.who.slice(0, 2).toUpperCase()}
+                            </S.ActivityAvatarFallback>
+                          </S.ActivityAvatar>
+                          <S.ActivityWho>{row.who}</S.ActivityWho>
+                        </S.ActivityWhoCell>
+                      </S.TabRowLead>
+                      <S.TabActivityTrail>
+                        <S.ActivityBuy>Buy</S.ActivityBuy>
+                        <S.ActivityQty>{row.qty}</S.ActivityQty>
+                        <S.ActivityPrice>{row.price}</S.ActivityPrice>
+                        <S.ActivityAgo>{row.ago}</S.ActivityAgo>
+                      </S.TabActivityTrail>
+                    </S.DetailTabsStatRowLi>
                   ))}
                 </StatRowList>
               </S.TabsPanelPlain>
@@ -417,12 +429,12 @@ export function AppDetailPage() {
                       },
                     ] as const
                   ).map((row, i) => (
-                    <S.DetailsStatRow key={row.label} striped={i % 2 === 1}>
+                    <S.DetailTabsStatRow key={row.label} $striped={i % 2 === 1}>
                       <StatRowIconLabel icon={row.Icon}>
                         {row.label}
                       </StatRowIconLabel>
                       <StatRowValue>{row.value}</StatRowValue>
-                    </S.DetailsStatRow>
+                    </S.DetailTabsStatRow>
                   ))}
                 </StatRowList>
               </S.TabsPanelPlain>

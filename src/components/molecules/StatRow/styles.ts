@@ -15,7 +15,12 @@ export const StatRowListUl = styled.ul`
   gap: 0.375rem;
 `
 
-const rowShell = ($striped?: boolean) => css`
+/**
+ * Shared visual shell for every tab row (padding + striping). Export so other
+ * styled components can compose the same spacing without going through the
+ * `StatRow` wrapper (which is opaque to styled-components v6 `as` polymorphism).
+ */
+export const statRowShellCss = ($striped?: boolean) => css`
   padding-top: 0.75rem;
   padding-bottom: 0.75rem;
   padding-left: 0.5rem;
@@ -37,11 +42,11 @@ const rowShell = ($striped?: boolean) => css`
 `
 
 export const StatRowDiv = styled.div<{ $striped?: boolean }>`
-  ${({ $striped }) => rowShell($striped)}
+  ${({ $striped }) => statRowShellCss($striped)}
 `
 
 export const StatRowLi = styled.li<{ $striped?: boolean }>`
-  ${({ $striped }) => rowShell($striped)}
+  ${({ $striped }) => statRowShellCss($striped)}
 `
 
 export const StatRowDt = styled.dt`

@@ -3,7 +3,11 @@ import { Link } from "react-router-dom"
 
 import { Avatar, AvatarFallback } from "components/ui/avatar"
 import { Button } from "components/ui/button"
-import { StatRow, StatRowList } from "components/molecules/StatRow"
+import {
+  StatRow,
+  StatRowList,
+  statRowShellCss,
+} from "components/molecules/StatRow"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "components/ui/tabs"
 
 const tabular = css`
@@ -561,10 +565,53 @@ export const TabsPanelPlain = styled(TabsContent)`
   margin-top: 1rem;
 `
 
-export const HolderStatRow = styled(StatRow).attrs({ as: "li" })`
+/**
+ * Shared flex layout for every tab row. Pairs with `statRowShellCss` below so
+ * Details / Holders / Activity all get the same padding, striping, and height.
+ */
+const detailTabsRowLayout = css`
   display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.5rem;
+`
+
+/** Row for Details (nested inside a `<dl>`). */
+export const DetailTabsStatRow = styled.div<{ $striped?: boolean }>`
+  ${({ $striped }) => statRowShellCss($striped)}
+  ${detailTabsRowLayout}
+`
+
+/** Row for Holders / Activity (nested inside a `<ul>`). */
+export const DetailTabsStatRowLi = styled.li<{ $striped?: boolean }>`
+  ${({ $striped }) => statRowShellCss($striped)}
+  ${detailTabsRowLayout}
+`
+
+/** Primary cluster (rank, avatar, name, or trader + avatar) — flexes like the details label column. */
+export const TabRowLead = styled.div`
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0%;
   align-items: center;
   gap: 0.75rem;
+`
+
+/** Trailing grid for activity: Buy · qty · price · time (who lives in TabRowLead). */
+export const TabActivityTrail = styled.div`
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: 2.75rem 4rem 4.25rem 2.75rem;
+  align-items: center;
+  column-gap: 0.75rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: 3rem 4.25rem 4.5rem 3rem;
+    column-gap: 1rem;
+  }
 `
 
 export const HolderRank = styled.span`
@@ -641,28 +688,17 @@ export const HolderBadge = styled.span<{ $tone: HolderBadgeTone }>`
     `}
 `
 
-export const ActivityStatRow = styled(StatRow).attrs({ as: "li" })`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 2.75rem 4rem 4.25rem 2.75rem;
-  align-items: center;
-  column-gap: 0.75rem;
-
-  @media (min-width: 640px) {
-    grid-template-columns: minmax(0, 1fr) 3rem 4.25rem 4.5rem 3rem;
-    column-gap: 1rem;
-  }
-`
-
 export const ActivityWhoCell = styled.div`
   display: flex;
   min-width: 0;
+  flex: 1 1 0%;
   align-items: center;
   gap: 0.5rem;
 `
 
 export const ActivityAvatar = styled(Avatar)`
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   flex-shrink: 0;
   border-radius: 9999px;
 
@@ -673,7 +709,7 @@ export const ActivityAvatar = styled(Avatar)`
 
 export const ActivityAvatarFallback = styled(AvatarFallback)`
   border-radius: inherit;
-  font-size: 9px;
+  font-size: 10px;
 `
 
 export const ActivityWho = styled.span`
@@ -711,13 +747,6 @@ export const ActivityAgo = styled.span`
   justify-self: end;
   ${tabular};
   color: var(--muted-foreground);
-`
-
-export const DetailsStatRow = styled(StatRow)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
 `
 
 export const ContractValueRow = styled.span`

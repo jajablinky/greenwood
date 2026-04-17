@@ -7,3 +7,4 @@ export {
   statRowPaddingXClassName,
   statRowPaddingYClassName,
 } from "./StatRow"
+export { statRowShellCss } from "./styles"
