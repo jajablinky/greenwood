@@ -6,8 +6,8 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react"
-import { ArrowLeftIcon, ArrowUpIcon, MessageSquare, Send } from "lucide-react"
-import { Navigate, useNavigate, useParams } from "react-router-dom"
+import { ArrowLeftIcon, ArrowUpIcon, MessageSquare, Send } from "assets/icons"
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
 
 import {
   ProjectStatusPill,
@@ -17,12 +17,14 @@ import { CommentThreadNode } from "components/molecules/CommentThread"
 import { CommentsStatRowList } from "components/molecules/CommentThread/styles"
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
 
+import { APP_MOCK_ONLY } from "helpers/app-mode"
 import { activityDetailPath, studioPathForProtocol } from "helpers/app-route-name"
 import { INITIAL_ACTIVITY_FEED, type FeedComment } from "helpers/activity-feed-mock-data"
 import { buildCommentTree } from "helpers/comment-tree"
 import { formatCount } from "helpers/format-count"
 import { abbreviateWalletAddress } from "helpers/abbrev-wallet"
 import { formatShortTimeAgo } from "helpers/format-short-time-ago"
+import { mockWorkspaceSnapshotFromName } from "helpers/mock-workspace-snapshot"
 import {
   remixDescription,
   remixTeamLeadPrompt,
@@ -56,9 +58,12 @@ function scoreTone(score: number): "positive" | "negative" | "neutral" {
   return "neutral"
 }
 
+type AppDetailLocationState = { scrollToComments?: boolean } | null
+
 export function AppDetailPage() {
   const { feedId = "" } = useParams<{ feedId: string }>()
   const decodedId = decodeURIComponent(feedId)
+  const location = useLocation()
   const navigate = useNavigate()
   const { push } = useToaster()
   const { walletAddress, connect } = useArweaveProvider()
@@ -93,6 +98,18 @@ export function AppDetailPage() {
       []
     setComments(init)
   }, [decodedId, ouroFeedItems])
+
+  useEffect(() => {
+    const st = location.state as AppDetailLocationState
+    if (!st?.scrollToComments) return
+    const t = window.setTimeout(() => {
+      document.getElementById("comments")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+    }, 0)
+    return () => window.clearTimeout(t)
+  }, [location.key, location.state])
 
   const [detailComposerMode, setDetailComposerMode] =
     useState<DetailComposerMode>("create")
@@ -152,12 +169,20 @@ export function AppDetailPage() {
     if (!item || !ouroSlug) {
       throw new Error("Not an Ouro workspace")
     }
+    const titleText = item.cardTitle ?? item.appName
+    if (APP_MOCK_ONLY) {
+      const snapshot = mockWorkspaceSnapshotFromName(`${titleText} remix`, {
+        description: remixDescription(ouroSlug),
+      })
+      addWorkspace(snapshot)
+      navigate(activityDetailPath(`ouro:${snapshot.workspace.slug}`))
+      return
+    }
     const folders = await listFolders()
     const folderPath = folders[0]?.path
     if (!folderPath) {
       throw new Error("No folder in Ouroboros — open Ouroboros UI once.")
     }
-    const titleText = item.cardTitle ?? item.appName
     const snapshot = await createWorkspace({
       name: `${titleText} remix`,
       description: remixDescription(ouroSlug),
@@ -172,6 +197,40 @@ export function AppDetailPage() {
     e.preventDefault()
     const raw = draft.trim()
     if (!raw) return
+
+    if (ouroSlug && APP_MOCK_ONLY) {
+      if (detailComposerMode === "create") {
+        setPostBusy(true)
+        try {
+          await runOuroRemixCore(raw)
+          setDraft("")
+        } catch (err) {
+          push({
+            variant: "warning",
+            title: "Remix workspace failed",
+            body: err instanceof Error ? err.message : String(err),
+          })
+        } finally {
+          setPostBusy(false)
+        }
+        return
+      }
+      setComments((prev) => [
+        ...prev,
+        {
+          id: newCommentId(),
+          parentId: null,
+          author: "you",
+          authorInitials: "ME",
+          body: raw,
+          createdAt: Date.now(),
+          score: 0,
+          viewerVote: null,
+        },
+      ])
+      setDraft("")
+      return
+    }
 
     if (ouroSlug) {
       if (!walletAddress) {

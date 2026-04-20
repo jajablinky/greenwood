@@ -1,7 +1,7 @@
 import type { FormEvent } from "react"
 import { useCallback, useState } from "react"
 
-import { ArrowUpIcon } from "lucide-react"
+import { ArrowUpIcon, Globe, ShuffleIcon } from "assets/icons"
 
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
 import { Button } from "components/atoms/Button"
@@ -208,14 +208,41 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
           </S.CommentAvatar>
         </S.CommentAvatarLink>
         <S.CommentBlock>
-          <S.CommentMeta>
-            <S.CommentAuthor>{node.author}</S.CommentAuthor>
-            <S.CommentKindBadge $kind={isRemix ? "remix" : "comment"}>
-              {isRemix ? "Remix" : "Comment"}
-            </S.CommentKindBadge>
-            <S.CommentMetaDot aria-hidden />
-            <time>{formatShortTimeAgo(node.createdAt)}</time>
-          </S.CommentMeta>
+          {isRemix ? (
+            <S.CommentRemixMetaBar>
+              <S.CommentMetaLead>
+                <S.CommentMeta>
+                  <S.CommentAuthor>{node.author}</S.CommentAuthor>
+                  <S.CommentKindBadge $kind="remix">Remix</S.CommentKindBadge>
+                  <S.CommentMetaDot aria-hidden />
+                  <time>{formatShortTimeAgo(node.createdAt)}</time>
+                </S.CommentMeta>
+              </S.CommentMetaLead>
+              <S.RemixActionsRow>
+                <S.RemixViewAppLink
+                  to={studioHref}
+                  title={`Open ${remixDisplayName} in studio`}
+                  aria-label={`View app in studio — ${remixDisplayName}`}
+                >
+                  <Globe width={16} height={16} strokeWidth={2} aria-hidden />
+                </S.RemixViewAppLink>
+                <S.RemixThreadIconButton
+                  onClick={onRemixSecondary}
+                  title="Remix"
+                  aria-label={`Remix ${remixDisplayName}`}
+                >
+                  <ShuffleIcon width={16} height={16} strokeWidth={2} aria-hidden />
+                </S.RemixThreadIconButton>
+              </S.RemixActionsRow>
+            </S.CommentRemixMetaBar>
+          ) : (
+            <S.CommentMeta>
+              <S.CommentAuthor>{node.author}</S.CommentAuthor>
+              <S.CommentKindBadge $kind="comment">Comment</S.CommentKindBadge>
+              <S.CommentMetaDot aria-hidden />
+              <time>{formatShortTimeAgo(node.createdAt)}</time>
+            </S.CommentMeta>
+          )}
           {!isRemix ? <S.CommentBody>{node.body}</S.CommentBody> : null}
           {isRemix ? (
             <>
@@ -235,22 +262,11 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
                   style={{
                     width: 400,
                     height: 225,
-                    transform: "scale(0.2)",
+                    transform: "scale(0.25)",
                     transformOrigin: "0 0",
                   }}
                 />
               </S.RemixStudioPreviewLink>
-              <S.RemixActionsRow>
-                <S.RemixViewAppLink to={studioHref}>View app</S.RemixViewAppLink>
-                <S.RemixOutlineButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onRemixSecondary}
-                >
-                  Remix
-                </S.RemixOutlineButton>
-              </S.RemixActionsRow>
             </>
           ) : null}
           {(mode === "detail" && !props.detail.ouroSlug) || mode === "feed" ? (

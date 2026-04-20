@@ -2,6 +2,7 @@
 import React from "react"
 
 import type { ProjectRunStatus } from "components/atoms/ProjectStatusPill"
+import { APP_MOCK_ONLY } from "helpers/app-mode"
 import type { GlobalFeedItem } from "helpers/activity-feed-mock-data"
 import { globalFeedItemFromWorkspace } from "helpers/ouro-feed-items"
 import type { WorkspaceSnapshot } from "helpers/ouroboros/types"
@@ -52,6 +53,7 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
 
   const ensureSubscribed = React.useCallback(
     (slug: string, displayName: string) => {
+      if (APP_MOCK_ONLY) return
       if (subsRef.current.has(slug)) return
 
       const off = subscribeWorkspaceEvents(slug, {

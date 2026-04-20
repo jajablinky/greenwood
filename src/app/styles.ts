@@ -121,10 +121,15 @@ const baseRules = css`
   }
 
   html {
+    margin: 0;
+    padding: 0;
     background: var(--background);
   }
 
   body {
+    margin: 0;
+    padding: 0;
+    min-height: 100svh;
     background: var(--background);
     color: var(--foreground);
   }
@@ -142,9 +147,10 @@ const baseRules = css`
     resize: none;
   }
 
-  body,
   #root {
     min-height: 100svh;
+    margin: 0;
+    padding: 0;
   }
 
   h1,

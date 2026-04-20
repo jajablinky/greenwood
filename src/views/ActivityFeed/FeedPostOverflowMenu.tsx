@@ -1,6 +1,12 @@
 import { useCallback } from "react"
 import { Menu } from "@base-ui/react/menu"
-import { MoreVertical } from "lucide-react"
+import {
+  Copy,
+  ExternalLink,
+  Globe,
+  MoreVertical,
+  Share2,
+} from "assets/icons"
 import { useNavigate } from "react-router-dom"
 
 import { feedDetailAbsoluteUrl } from "helpers/feed-detail-url"
@@ -69,7 +75,7 @@ export function FeedPostOverflowMenu({
           e.stopPropagation()
         }}
       >
-        <MoreVertical size={18} strokeWidth={2} aria-hidden />
+        <MoreVertical width={18} height={18} strokeWidth={2} aria-hidden />
       </S.FeedPostOverflowTrigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={6}>
@@ -80,6 +86,9 @@ export function FeedPostOverflowMenu({
                 copyLink()
               }}
             >
+              <S.FeedPostOverflowMenuItemIcon>
+                <Copy strokeWidth={2} aria-hidden />
+              </S.FeedPostOverflowMenuItemIcon>
               Copy link
             </S.FeedPostOverflowMenuItem>
             <S.FeedPostOverflowMenuItem
@@ -88,6 +97,9 @@ export function FeedPostOverflowMenu({
                 void shareLink()
               }}
             >
+              <S.FeedPostOverflowMenuItemIcon>
+                <Share2 strokeWidth={2} aria-hidden />
+              </S.FeedPostOverflowMenuItemIcon>
               Share link
             </S.FeedPostOverflowMenuItem>
             <S.FeedPostOverflowMenuItem
@@ -96,6 +108,9 @@ export function FeedPostOverflowMenu({
                 viewTransaction()
               }}
             >
+              <S.FeedPostOverflowMenuItemIcon>
+                <ExternalLink strokeWidth={2} aria-hidden />
+              </S.FeedPostOverflowMenuItemIcon>
               View transaction on chain
             </S.FeedPostOverflowMenuItem>
             <S.FeedPostOverflowMenuItem
@@ -104,6 +119,9 @@ export function FeedPostOverflowMenu({
                 viewApp()
               }}
             >
+              <S.FeedPostOverflowMenuItemIcon>
+                <Globe strokeWidth={2} aria-hidden />
+              </S.FeedPostOverflowMenuItemIcon>
               View app
             </S.FeedPostOverflowMenuItem>
           </S.FeedPostOverflowPopup>

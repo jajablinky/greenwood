@@ -1,4 +1,4 @@
-import { Bell, Home, SquarePlus } from "lucide-react"
+import { Bell, Home, SquarePlus } from "assets/icons"
 import { useMatch, useNavigate } from "react-router-dom"
 
 import * as S from "./styles"
@@ -14,7 +14,8 @@ function HomeGlyph() {
   const active = home != null
   return (
     <Home
-      size={ICON}
+      width={ICON}
+      height={ICON}
       strokeWidth={iconStroke(active)}
       fill={active ? "currentColor" : "none"}
       aria-hidden
@@ -25,7 +26,14 @@ function HomeGlyph() {
 function NotificationsGlyph() {
   const m = useMatch({ path: "/notifications", end: true })
   const active = m != null
-  return <Bell size={ICON} strokeWidth={iconStroke(active)} aria-hidden />
+  return (
+    <Bell
+      width={ICON}
+      height={ICON}
+      strokeWidth={iconStroke(active)}
+      aria-hidden
+    />
+  )
 }
 
 export function MobileTabBar() {
@@ -46,7 +54,12 @@ export function MobileTabBar() {
 
       <S.TabButton type="button" onClick={openCreate} aria-label="Create">
         <S.IconSlot>
-          <SquarePlus size={ICON} strokeWidth={iconStroke(false)} aria-hidden />
+          <SquarePlus
+            width={ICON}
+            height={ICON}
+            strokeWidth={iconStroke(false)}
+            aria-hidden
+          />
         </S.IconSlot>
         <span data-tab-label>Create</span>
       </S.TabButton>

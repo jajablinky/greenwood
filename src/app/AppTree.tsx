@@ -1,4 +1,3 @@
-import { LucideProvider } from "lucide-react"
 import { HashRouter } from "react-router-dom"
 
 import App from "app/App"
@@ -11,13 +10,11 @@ export function AppTree() {
   return (
     <ToasterProvider>
       <ProjectsProvider>
-        <LucideProvider strokeWidth={1.5}>
-          <TooltipProvider>
-            <HashRouter>
-              <App />
-            </HashRouter>
-          </TooltipProvider>
-        </LucideProvider>
+        <TooltipProvider>
+          <HashRouter>
+            <App />
+          </HashRouter>
+        </TooltipProvider>
       </ProjectsProvider>
     </ToasterProvider>
   )

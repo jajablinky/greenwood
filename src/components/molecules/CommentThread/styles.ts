@@ -420,6 +420,21 @@ export const CommentMeta = styled.p`
   color: var(--muted-foreground);
 `
 
+/** Remix: meta (author · badge · time) + trailing View app / Remix on one row. */
+export const CommentRemixMetaBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+`
+
+export const CommentMetaLead = styled.div`
+  min-width: 0;
+  flex: 1 1 auto;
+`
+
 export const CommentMetaDot = styled.span`
   display: inline-block;
   width: 2px;
@@ -472,7 +487,7 @@ export const CommentBody = styled.p`
 
 /** Fork label + prompt excerpt above the remix preview iframe. */
 export const RemixForkSummary = styled.div`
-  margin-top: 0.25rem;
+  margin-top: 0;
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
@@ -497,8 +512,8 @@ export const RemixStudioPreviewLink = styled(Link)`
   position: relative;
   margin-top: 0.5rem;
   display: block;
-  width: 5rem;
-  height: 3rem;
+  width: 6.25rem;
+  height: 3.75rem;
   overflow: hidden;
   border-radius: var(--radius-md);
   border: 1px solid rgb(0 0 0 / 8%);
@@ -533,38 +548,102 @@ export const RemixPreviewIframe = styled.iframe`
 `
 
 export const RemixActionsRow = styled.div`
-  margin-top: 0.5rem;
   display: flex;
-  width: 100%;
+  flex-shrink: 0;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
 `
 
+/** Icon-only studio link — muted like `RemixThreadIconButton`, not primary blue. */
 export const RemixViewAppLink = styled(Link)`
-  font-size: 11px;
-  line-height: 1rem;
-  font-weight: 500;
-  color: oklch(0.45 0.12 230);
-  text-underline-offset: 2px;
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 0;
+  padding: 0;
+  line-height: 0;
+  color: var(--muted-foreground);
+  background: transparent;
   text-decoration: none;
+  outline: none;
 
   &:hover {
-    text-decoration: underline;
+    background: color-mix(in oklab, var(--foreground) 10%, transparent);
+    color: var(--foreground);
+    text-decoration: none;
   }
 
-  .dark & {
-    color: oklch(0.78 0.1 230);
+  .dark &:hover {
+    background: color-mix(in oklab, var(--foreground) 14%, transparent);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 45%, transparent);
+  }
+
+  & svg {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 640px) {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
   }
 `
 
-export const RemixOutlineButton = styled(Button)`
-  height: 1.75rem;
-  padding-inline: 0.625rem;
-  font-size: 11px;
-  line-height: 1rem;
-  font-weight: 500;
+/**
+ * Ghost pill icon-only — matches feed `FeedRemixToggleButton` / `FeedActionIconButton`
+ * (muted, circular hover); shuffle icon only, no label.
+ */
+export const RemixThreadIconButton = styled(Button).attrs({
+  type: "button",
+  variant: "ghost",
+  size: "sm",
+})`
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 0;
+  padding: 0;
+  color: var(--muted-foreground);
+  background: transparent;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--foreground) 10%, transparent) !important;
+    color: var(--foreground);
+  }
+
+  .dark &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--foreground) 14%, transparent) !important;
+  }
+
+  & svg {
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 640px) {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
 `
 
 export const ViewMoreCommentsRow = styled.div`

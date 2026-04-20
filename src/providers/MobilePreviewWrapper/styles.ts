@@ -191,7 +191,7 @@ export const PreviewIframe = styled.iframe`
 export const ToggleButton = styled.button`
   position: fixed;
   bottom: 1.25rem;
-  right: 1.25rem;
+  left: 1.25rem;
   z-index: 10001;
   display: inline-flex;
   align-items: center;

@@ -1,5 +1,5 @@
 import { useCallback, useId, useRef, useState } from "react"
-import { BatteryFull, Monitor, Signal, Smartphone, Wifi } from "lucide-react"
+import { BatteryFull, Monitor, Signal, Smartphone, Wifi } from "assets/icons"
 
 import { buildDeviceFramePreviewUrl } from "helpers/device-frame-preview"
 
@@ -19,7 +19,12 @@ import {
 } from "./styles"
 
 function DeviceStatusBar() {
-  const iconProps = { size: 15, strokeWidth: 2.5, "aria-hidden": true as const }
+  const iconProps = {
+    width: 15,
+    height: 15,
+    strokeWidth: 2.5,
+    "aria-hidden": true as const,
+  }
 
   return (
     <IosStatusBar aria-hidden>
@@ -27,7 +32,7 @@ function DeviceStatusBar() {
       <IosStatusIcons>
         <Signal {...iconProps} />
         <Wifi {...iconProps} />
-        <BatteryFull {...iconProps} size={17} />
+        <BatteryFull {...iconProps} width={17} height={17} />
       </IosStatusIcons>
     </IosStatusBar>
   )
@@ -97,7 +102,11 @@ export function MobilePreviewWrapper({ children }: { children: React.ReactNode }
         aria-pressed={mobilePreview}
         aria-labelledby={labelId}
       >
-        {mobilePreview ? <Monitor size={18} aria-hidden /> : <Smartphone size={18} aria-hidden />}
+        {mobilePreview ? (
+          <Monitor width={18} height={18} aria-hidden />
+        ) : (
+          <Smartphone width={18} height={18} aria-hidden />
+        )}
         <span id={labelId}>{mobilePreview ? "Exit phone" : "Phone preview"}</span>
       </ToggleButton>
     </>
