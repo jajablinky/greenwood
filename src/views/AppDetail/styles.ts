@@ -33,6 +33,15 @@ export const StickyHeader = styled.header`
   .dark & {
     background: var(--background);
   }
+
+  @media (max-width: 639.98px) {
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+
+    html[data-mobile-chrome-hidden="true"] & {
+      transform: translateY(-100%);
+    }
+  }
 `
 
 export const HeaderInner = styled.div`
@@ -44,6 +53,7 @@ export const HeaderInner = styled.div`
   gap: 0.75rem;
   padding: 0.375rem 0.375rem;
   @media (min-width: 640px) {
+    max-width: 40rem;
     padding: 0.5rem 1.5rem;
   }
 `
@@ -89,6 +99,7 @@ export const DetailMain = styled.main`
   max-width: 48rem;
   padding: 1rem;
   @media (min-width: 640px) {
+    max-width: 40rem;
     padding-inline: 1.5rem;
   }
 `
@@ -879,7 +890,6 @@ export const OuroRemixButton = styled(Button)`
 export {
   InlineComposerFab as PostCommentFab,
   InlineComposerFabIcon as PostCommentFabIcon,
-  InlineComposerFabLabel as PostCommentFabLabel,
   InlineComposerShell as CommentComposerShell,
   InlineComposerTextarea as CommentComposerTextarea,
 } from "components/molecules/CommentThread/styles"

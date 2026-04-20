@@ -58,3 +58,12 @@ export function scoreToneForComment(
   if (score < 0) return "negative"
   return "neutral"
 }
+
+/** All comments under `nodes` (each node and its descendants). */
+export function countDescendantComments(nodes: CommentTreeNode[]): number {
+  let n = 0
+  for (const node of nodes) {
+    n += 1 + countDescendantComments(node.children)
+  }
+  return n
+}

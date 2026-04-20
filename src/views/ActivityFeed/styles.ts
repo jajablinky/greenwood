@@ -1,5 +1,6 @@
 import styled, { css } from "styled-components"
 import { Link } from "react-router-dom"
+import { Menu } from "@base-ui/react/menu"
 
 import { Avatar, AvatarFallback } from "components/atoms/Avatar"
 import { Button } from "components/atoms/Button"
@@ -16,9 +17,12 @@ export const HeaderInner = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.375rem 0.375rem;
+  /* Match feed card inner edge: same horizontal pad as FeedCard (narrow). */
+  padding: 0.375rem 0.75rem;
   @media (min-width: 640px) {
-    padding: 0.5rem 1.5rem;
+    max-width: 40rem;
+    /* FeedMain inline (1.5rem) + FeedCard pad-x (1rem) — aligns brand with post copy. */
+    padding: 0.5rem 2.5rem;
   }
 `
 
@@ -59,13 +63,31 @@ export const HeaderTextButton = styled(Button).attrs({
   border-radius: var(--radius-md);
 `
 
+/** Create — hidden on narrow viewports; Connect stays visible. */
+export const HeaderNewProjectButton = styled(HeaderTextButton)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  & svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 639.98px) {
+    display: none;
+  }
+`
+
 export const FeedMain = styled.main`
   position: relative;
   z-index: 0;
   margin-inline: auto;
   max-width: 48rem;
-  padding: 0.375rem 0.375rem 4rem;
+  padding: 0 0 4rem;
   @media (min-width: 640px) {
+    max-width: 40rem;
     padding-inline: 1.5rem;
     padding-top: 0.75rem;
   }
@@ -77,21 +99,26 @@ export const FeedList = styled.ol`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 1.25rem;
   @media (min-width: 640px) {
     gap: 3.5rem;
   }
 `
 
 export const FeedItemArticle = styled.article`
+  /* Align thread / composer with the main column beside the card avatar (Twitter-style). */
+  --feed-avatar-size: 2.5rem;
+  /* Tight space between avatar rail and preview (was 0.75rem). */
+  --feed-avatar-gap: 0.5rem;
+  --feed-thread-indent: calc(var(--feed-avatar-size) + var(--feed-avatar-gap));
+
   display: flex;
   flex-direction: column;
   gap: 0;
-`
 
-export const CardTitleText = styled.span`
-  color: var(--foreground);
-  text-underline-offset: 2px;
+  @media (min-width: 640px) {
+    --feed-avatar-size: 3rem;
+  }
 `
 
 export const FeedCard = styled.div`
@@ -99,11 +126,11 @@ export const FeedCard = styled.div`
   cursor: pointer;
   overflow: hidden;
   border-radius: var(--radius-xl);
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  @media (min-width: 640px) {
-    padding: 1.5rem;
+  @media (max-width: 639.98px) {
+    padding: 0.75rem 0.75rem;
   }
 
   &:hover {
@@ -120,10 +147,6 @@ export const FeedCard = styled.div`
       var(--feed-hover-accent) 9%,
       var(--card)
     );
-  }
-
-  &:hover ${CardTitleText} {
-    text-decoration: underline;
   }
 `
 
@@ -142,9 +165,38 @@ export const CardOverlayLink = styled(Link)`
   }
 `
 
+/** Listing vote stack — full avatar column width so controls share the avatar’s vertical center line. */
+export const FeedListingVoteCluster = styled.div`
+  display: flex;
+  grid-column: 1;
+  grid-row: 2;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  align-self: center;
+  gap: 0.25rem;
+  width: var(--feed-avatar-size);
+  min-width: 0;
+  padding-right: 10px;
+  pointer-events: auto;
+
+  @media (min-width: 640px) {
+    gap: 0.3125rem;
+    padding-right: 18px;
+
+  }
+`
+
 export const CardPreviewFrame = styled.div`
   position: relative;
   z-index: 10;
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  width: 100%;
   min-height: 80px;
   overflow: hidden;
   border-radius: var(--radius-xl);
@@ -162,145 +214,223 @@ export const CardPreviewIframe = styled.iframe`
   background: transparent;
 `
 
-export const CardMetaSection = styled.div`
+/**
+ * Grid: col1 = avatar + vote (same horizontal line as avatar); col2 = copy, preview, actions.
+ * Vote sits in the avatar column, centered to the preview row — preview stays wider.
+ */
+export const CardTweetSection = styled.div`
   position: relative;
   z-index: 10;
-  padding-block: 0.5rem;
+  display: grid;
+  grid-template-columns: var(--feed-avatar-size) minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--feed-avatar-gap);
+  row-gap: 0.5rem;
+  pointer-events: none;
 `
 
-export const CardMetaRow = styled.div`
+export const FeedTweetBody = styled.div`
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  pointer-events: auto;
+`
+
+/** Time + overflow menu; sits top-right on the app title row. */
+export const FeedTweetPromptAside = styled.div`
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.125rem;
+`
+
+export const FeedTweetPrompt = styled.p`
+  margin: 0;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
   @media (min-width: 640px) {
-    gap: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.375rem;
   }
 `
 
-export const CardMetaLeft = styled.div`
-  pointer-events: none;
+/** App title + optional status (leading) and time + overflow (trailing). */
+export const FeedTweetAppRow = styled.div`
   display: flex;
   min-width: 0;
-  flex: 1 1 0%;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 0.5rem;
+`
+
+/** Title + status pill; shares the top row with {@link FeedTweetPromptAside}. */
+export const FeedTweetAppLeading = styled.div`
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+`
+
+export const FeedTweetAppName = styled.span`
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  line-height: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+
   @media (min-width: 640px) {
-    gap: 0.75rem;
+    font-size: 1rem;
+    line-height: 1.45rem;
+  }
+`
+
+export const FeedPostOverflowTrigger = styled(Menu.Trigger)`
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: -0.125rem -0.25rem -0.125rem 0;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+
+  &:hover {
+    background: color-mix(in oklab, var(--foreground) 8%, transparent);
+    color: var(--foreground);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+`
+
+export const FeedPostOverflowPopup = styled(Menu.Popup)`
+  z-index: 60;
+  min-width: 12rem;
+  padding: 0.35rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow:
+    0 10px 38px -10px rgb(15 23 42 / 28%),
+    0 4px 16px -8px rgb(15 23 42 / 12%);
+
+  .dark & {
+    box-shadow:
+      0 10px 38px -10px rgb(0 0 0 / 45%),
+      0 4px 16px -8px rgb(0 0 0 / 35%);
+  }
+`
+
+export const FeedPostOverflowMenuItem = styled(Menu.Item)`
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--foreground);
+  outline: none;
+
+  &[data-highlighted] {
+    background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  }
+`
+
+export const BuilderAvatarLink = styled(Link)`
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  line-height: 0;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: inherit;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--ring);
   }
 `
 
 export const BuilderAvatar = styled(Avatar)`
   aspect-ratio: 1;
-  width: 2rem;
-  height: 2rem;
+  width: var(--feed-avatar-size);
+  height: var(--feed-avatar-size);
   flex-shrink: 0;
   border-radius: 9999px;
 
   &::after {
     border-radius: 9999px;
   }
-
-  @media (min-width: 640px) {
-    width: 2.25rem;
-    height: 2.25rem;
-  }
 `
 
 export const BuilderAvatarFallback = styled(AvatarFallback)`
   border-radius: inherit;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   line-height: 1rem;
-  font-weight: 500;
-`
+  font-weight: 600;
 
-export const CardTextCol = styled.div`
-  display: flex;
-  min-width: 0;
-  flex: 1 1 0%;
-  flex-direction: column;
-  align-items: stretch;
-  align-self: stretch;
-`
-
-export const CardTitleRow = styled.div`
-  display: flex;
-  min-width: 0;
-  flex-wrap: nowrap;
-  align-items: center;
-  column-gap: 0.5rem;
   @media (min-width: 640px) {
-    column-gap: 0.625rem;
+    font-size: 0.8125rem;
   }
-`
-
-export const CardTitleHeading = styled.h2`
-  margin: 0;
-  min-width: 0;
-  flex-shrink: 1;
-  font-size: 15px;
-  line-height: 1.375;
-  font-weight: 500;
-  @media (min-width: 640px) {
-    font-size: 1rem;
-    line-height: 1.5rem;
-  }
-`
-
-export const CardSubMetaRow = styled.div`
-  margin-top: 0.125rem;
-  display: flex;
-  min-width: 0;
-  flex-wrap: nowrap;
-  align-items: center;
-  column-gap: 0.375rem;
-  overflow: hidden;
-  font-size: 11px;
-  line-height: 1rem;
-  color: var(--muted-foreground);
-  @media (min-width: 640px) {
-    column-gap: 0.5rem;
-    font-size: 0.75rem;
-    line-height: 1rem;
-  }
-`
-
-export const WalletAbbrev = styled.span`
-  flex-shrink: 0;
-  font-weight: 500;
-  ${tabular};
-  color: color-mix(in oklab, var(--foreground) 80%, transparent);
-`
-
-export const DotSep = styled.span`
-  flex-shrink: 0;
 `
 
 export const TimeMeta = styled.span`
   flex-shrink: 0;
 `
 
-export const CardToolbar = styled.div`
-  position: relative;
-  z-index: 20;
-  display: flex;
-  cursor: auto;
-  flex-shrink: 0;
-  flex-wrap: nowrap;
-  align-items: center;
-  column-gap: 0.375rem;
-  align-self: center;
-  pointer-events: auto;
+export const FeedTweetTime = styled(TimeMeta)`
+  color: var(--muted-foreground);
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  ${tabular};
+
+  @media (min-width: 640px) {
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+  }
 `
 
 const feedGhostToolbarButtonCss = css`
   height: 2.25rem;
   min-height: 2.25rem;
   flex-shrink: 0;
-  column-gap: 0.375rem;
+  column-gap: 0.25rem;
   border-radius: 9999px;
   border: 0;
-  padding-inline: 0.625rem;
+  padding-inline: 0.375rem;
   color: var(--muted-foreground);
   background: transparent;
   text-decoration: none;
@@ -317,6 +447,8 @@ const feedGhostToolbarButtonCss = css`
   @media (min-width: 640px) {
     height: 2.5rem;
     min-height: 2.5rem;
+    column-gap: 0.375rem;
+    padding-inline: 0.625rem;
   }
 `
 
@@ -325,6 +457,42 @@ export const FeedCommentLinkButton = styled(Button)`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+`
+
+/** Icon-only actions (copy / view app). */
+export const FeedActionIconButton = styled(Button)`
+  ${feedGhostToolbarButtonCss};
+  display: inline-flex;
+  min-width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.5rem;
+
+  @media (min-width: 640px) {
+    min-width: 2.5rem;
+  }
+`
+
+/** Icon-only link to app detail (trailing group). */
+export const FeedViewAppLinkButton = styled(FeedCommentLinkButton)`
+  min-width: 2.25rem;
+  padding-inline: 0.5rem;
+
+  @media (min-width: 640px) {
+    min-width: 2.5rem;
+  }
+`
+
+/** Visible label next to shuffle icon in feed action bar. */
+export const FeedRemixButtonText = styled.span`
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--muted-foreground);
+
+  @media (min-width: 640px) {
+    font-size: 0.875rem;
+  }
 `
 
 export const FeedRemixToggleButton = styled(Button).withConfig({
@@ -339,6 +507,10 @@ export const FeedRemixToggleButton = styled(Button).withConfig({
       color: var(--foreground);
       box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
 
+      ${FeedRemixButtonText} {
+        color: var(--foreground);
+      }
+
       &:hover {
         background: color-mix(in oklab, oklch(0.65 0.15 250) 80%, transparent) !important;
       }
@@ -351,6 +523,30 @@ export const FeedRemixToggleButton = styled(Button).withConfig({
         background: color-mix(in oklab, oklch(0.45 0.12 250) 45%, transparent) !important;
       }
     `}
+
+  &:hover:not(:disabled) ${FeedRemixButtonText} {
+    color: var(--foreground);
+  }
+`
+
+/**
+ * Same width as the preview column: first control flush left, last flush right
+ * (aligns with app view corners); remix and copy share the space between.
+ */
+export const CardActionBar = styled.div`
+  position: relative;
+  z-index: 20;
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.125rem 0 0;
+  pointer-events: auto;
 `
 
 export const Icon16 = styled.span`
@@ -367,17 +563,6 @@ export const Icon16 = styled.span`
 
 export const TabularText = styled.span`
   ${tabular};
-`
-
-export const VoteGroup = styled.div`
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-  overflow: hidden;
-  /* CardMetaLeft uses pointer-events: none so the card link receives clicks; keep voting interactive. */
-  pointer-events: auto;
 `
 
 export const VoteIconBtn = styled(Button).attrs({ type: "button" })`
@@ -455,34 +640,31 @@ export const ScoreValue = styled.span<{ $tone: ScoreTone }>`
   }
 `
 
-export const ThreadPanel = styled.div`
-  padding: 0 0.75rem 0.75rem;
+/** Vertical score between arrows in the feed listing vote column. */
+export const FeedListingScoreValue = styled(ScoreValue)`
+  min-width: 0;
+  max-width: 100%;
+  min-height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0.125rem;
+
   @media (min-width: 640px) {
-    padding-inline: 1rem;
-    padding-bottom: 1rem;
+    min-height: 1.5rem;
   }
+`
+
+export const ThreadPanel = styled.div`
+  padding: 0 0 1rem;
+  padding-left: var(--feed-thread-indent);
 `
 
 export const ThreadInner = styled.div`
   margin-top: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  border-top: 1px solid rgb(0 0 0 / 6%);
-  padding-top: 1rem;
-
-  .dark & {
-    border-color: rgb(255 255 255 / 8%);
-  }
-`
-
-export const CommentList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 `
 
 export const RemixDialogContent = styled(DialogContent)`
@@ -723,5 +905,14 @@ export const StickyHeader = styled.header`
   background: #ffffff;
   .dark & {
     background: var(--background);
+  }
+
+  @media (max-width: 639.98px) {
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+
+    html[data-mobile-chrome-hidden="true"] & {
+      transform: translateY(-100%);
+    }
   }
 `

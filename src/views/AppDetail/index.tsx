@@ -6,16 +6,9 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react"
-import {
-  ArrowLeftIcon,
-  ArrowUpIcon,
-  MessageSquare,
-  Send,
-  ShuffleIcon,
-} from "lucide-react"
+import { ArrowLeftIcon, ArrowUpIcon, MessageSquare, Send } from "lucide-react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 
-import { FeedPriceCaption } from "components/atoms/FeedPriceCaption"
 import {
   ProjectStatusPill,
   type ProjectRunStatus,
@@ -25,11 +18,7 @@ import { CommentsStatRowList } from "components/molecules/CommentThread/styles"
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
 
 import { activityDetailPath, studioPathForProtocol } from "helpers/app-route-name"
-import {
-  INITIAL_ACTIVITY_FEED,
-  mockRemixListForItem,
-  type FeedComment,
-} from "helpers/activity-feed-mock-data"
+import { INITIAL_ACTIVITY_FEED, type FeedComment } from "helpers/activity-feed-mock-data"
 import { buildCommentTree } from "helpers/comment-tree"
 import { formatCount } from "helpers/format-count"
 import { abbreviateWalletAddress } from "helpers/abbrev-wallet"
@@ -94,8 +83,6 @@ export function AppDetailPage() {
   const [comments, setComments] = useState<FeedComment[]>([])
   const [draft, setDraft] = useState("")
   const [postBusy, setPostBusy] = useState(false)
-  const [remixDraft, setRemixDraft] = useState("")
-  const [remixBusy, setRemixBusy] = useState(false)
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [replyDraft, setReplyDraft] = useState("")
 
@@ -106,12 +93,6 @@ export function AppDetailPage() {
       []
     setComments(init)
   }, [decodedId, ouroFeedItems])
-
-  const remixes = useMemo(() => {
-    const found = INITIAL_ACTIVITY_FEED.find((x) => x.id === decodedId)
-    if (!found) return []
-    return mockRemixListForItem(found)
-  }, [decodedId])
 
   const [detailComposerMode, setDetailComposerMode] =
     useState<DetailComposerMode>("create")
@@ -161,7 +142,6 @@ export function AppDetailPage() {
   const displayScore =
     item.score + (vote === "up" ? 1 : vote === "down" ? -1 : 0)
   const title = item.cardTitle ?? item.appName
-  const remixListCount = remixes.length
   const detailStudioHref = studioPathForProtocol(item.appName)
 
   function toggleVote(direction: "up" | "down") {
@@ -232,13 +212,13 @@ export function AppDetailPage() {
     }
 
     if (detailComposerMode === "create") {
-      document.getElementById("remixes")?.scrollIntoView({
+      document.getElementById("comments")?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       })
       push({
-        title: "Remixes",
-        body: "Pick a fork below to open in Studio.",
+        title: "Remix ideas",
+        body: "Post in the thread below or use Remix on a comment.",
       })
       return
     }
@@ -271,32 +251,6 @@ export function AppDetailPage() {
     })
   }
 
-  async function submitOuroRemix() {
-    if (!ouroSlug || !item) return
-    const raw = remixDraft.trim()
-    if (!raw) {
-      push({ title: "Add a remix prompt", variant: "warning" })
-      return
-    }
-    if (!walletAddress) {
-      await connect()
-      return
-    }
-    setRemixBusy(true)
-    try {
-      await runOuroRemixCore(raw)
-      setRemixDraft("")
-    } catch (err) {
-      push({
-        variant: "warning",
-        title: "Remix workspace failed",
-        body: err instanceof Error ? err.message : String(err),
-      })
-    } finally {
-      setRemixBusy(false)
-    }
-  }
-
   const remixComposerPlaceholder = "What should this remix do differently?"
 
   const detailComposerPlaceholder = ouroSlug
@@ -316,14 +270,11 @@ export function AppDetailPage() {
         ? "Message workspace"
         : "Add comment"
 
-  const detailComposerFabLabel =
-    detailComposerMode === "create" ? "Create" : "Comment"
-
   const detailComposerSubmitAria =
     detailComposerMode === "create"
       ? ouroSlug
         ? "Create remix workspace from prompt"
-        : "Jump to remixes"
+        : "Open comments for remix ideas"
       : ouroSlug
         ? "Send message to workspace"
         : "Post comment"
@@ -332,7 +283,7 @@ export function AppDetailPage() {
     detailComposerMode === "create"
       ? ouroSlug
         ? "Create a new workspace from this prompt"
-        : "Scroll to remixes below"
+        : "Scroll to comments"
       : ouroSlug
         ? "Send to #general"
         : "Post comment"
@@ -374,11 +325,6 @@ export function AppDetailPage() {
                   {ouroRunStatus ? (
                     <ProjectStatusPill status={ouroRunStatus} />
                   ) : null}
-                  <FeedPriceCaption
-                    variant="inline"
-                    priceChangePct={item.priceChangePct}
-                    marketCapLabel={item.marketCapLabel}
-                  />
                 </S.TitleRow>
                 <S.SubMetaLine>
                   <S.SubMetaNums title={item.builderWallet}>
@@ -388,21 +334,6 @@ export function AppDetailPage() {
                 </S.SubMetaLine>
               </S.HeroTextCol>
               <S.HeroActions>
-                <S.DetailRemixJumpButton
-                  variant="ghost"
-                  size="sm"
-                  nativeButton={false}
-                  render={<a href="#remixes" />}
-                  title={`${remixListCount} remixes — jump to list`}
-                  aria-label={`${remixListCount} remixes, skip to remix list`}
-                >
-                  <S.Icon16>
-                    <ShuffleIcon strokeWidth={1} aria-hidden />
-                  </S.Icon16>
-                  <S.TabularText>
-                    {remixListCount > 99 ? "99+" : remixListCount}
-                  </S.TabularText>
-                </S.DetailRemixJumpButton>
                 <S.VoteGroup role="group" aria-label="Vote on this listing">
                   <S.VoteIconBtn
                     variant="vote"
@@ -475,7 +406,7 @@ export function AppDetailPage() {
                           value={draft}
                           onChange={(e) => setDraft(e.target.value)}
                           onKeyDown={onDetailComposerKeyDown}
-                          rows={3}
+                          rows={1}
                           placeholder={detailComposerPlaceholder}
                         />
                         <S.PostCommentFab
@@ -484,9 +415,6 @@ export function AppDetailPage() {
                           aria-label={detailComposerSubmitAria}
                           title={detailComposerSubmitTitle}
                         >
-                          <S.PostCommentFabLabel aria-hidden>
-                            {detailComposerFabLabel}
-                          </S.PostCommentFabLabel>
                           <S.PostCommentFabIcon>
                             <ArrowUpIcon strokeWidth={2.25} aria-hidden />
                           </S.PostCommentFabIcon>
@@ -523,7 +451,7 @@ export function AppDetailPage() {
                           toggleCommentVote,
                           onRemixFromComment: () => {
                             document
-                              .getElementById("remixes")
+                              .getElementById("comments")
                               ?.scrollIntoView({
                                 behavior: "smooth",
                                 block: "start",
@@ -540,58 +468,6 @@ export function AppDetailPage() {
                   </CommentsStatRowList>
                 )}
             </S.CommentsSection>
-
-            <S.RemixAside id="remixes">
-              <S.RemixAsideTitle>Remixes</S.RemixAsideTitle>
-              {ouroSlug ? (
-                <S.OuroRemixStack>
-                  <S.OuroRemixHint>
-                    Spawns a new Ouroboros workspace; team lead prompt is seeded from
-                    your text.
-                  </S.OuroRemixHint>
-                  <S.OuroRemixTextarea
-                    value={remixDraft}
-                    onChange={(e) => setRemixDraft(e.target.value)}
-                    rows={4}
-                    placeholder="What should the remixed project do differently?"
-                  />
-                  <S.OuroRemixButton
-                    type="button"
-                    onClick={() => void submitOuroRemix()}
-                    disabled={remixBusy || !remixDraft.trim()}
-                  >
-                    {remixBusy ? "Creating…" : "Remix as new workspace"}
-                  </S.OuroRemixButton>
-                </S.OuroRemixStack>
-              ) : (
-                <S.RemixAsideList>
-                  {remixes.map((r) => (
-                    <li key={r.id}>
-                      <S.RemixCardLink to={studioPathForProtocol(item.appName)}>
-                        <S.RemixThumb>
-                          <S.RemixThumbIframe
-                            title={`Preview: ${r.title}`}
-                            srcDoc={r.previewHtml}
-                            sandbox="allow-scripts"
-                          />
-                        </S.RemixThumb>
-                        <S.RemixCardBody>
-                          <S.RemixCardTitle>{r.title}</S.RemixCardTitle>
-                          <S.RemixCardMeta>
-                            <S.RemixCardAuthor>{r.author}</S.RemixCardAuthor>
-                            <span aria-hidden> · </span>
-                            {formatShortTimeAgo(r.createdAt)}
-                          </S.RemixCardMeta>
-                          <S.RemixCardVotes>
-                            {formatCount(r.score)} votes
-                          </S.RemixCardVotes>
-                        </S.RemixCardBody>
-                      </S.RemixCardLink>
-                    </li>
-                  ))}
-                </S.RemixAsideList>
-              )}
-            </S.RemixAside>
           </S.PrimaryColumn>
         </S.DetailGrid>
       </S.DetailMain>

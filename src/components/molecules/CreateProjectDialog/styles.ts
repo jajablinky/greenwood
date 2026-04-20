@@ -1,5 +1,13 @@
 import styled from "styled-components"
 
+export const StepHint = styled.p`
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+`
+
 export const Form = styled.form`
   display: flex;
   min-width: 0;
@@ -66,4 +74,22 @@ export const Actions = styled.div`
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
+`
+
+/** Step 2: back on the left, cancel + submit on the right. */
+export const ActionBar = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+`
+
+export const TrailingActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
 `

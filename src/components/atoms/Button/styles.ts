@@ -93,19 +93,18 @@ const variantCss: Record<Exclude<BtnVariant, "vote">, ReturnType<typeof css>> = 
   ghost: css`
     background: transparent;
 
-    &:hover:not(:disabled),
-    &[aria-expanded="true"] {
-      background: color-mix(in oklab, var(--foreground) 10%, transparent);
-      color: var(--foreground);
+    &:hover:not(:disabled) {
+      background: var(--accent);
+      color: var(--accent-foreground);
     }
 
     .dark & {
       background: transparent;
     }
 
-    .dark &:hover:not(:disabled),
-    .dark &[aria-expanded="true"] {
-      background: color-mix(in oklab, var(--foreground) 14%, transparent);
+    .dark &:hover:not(:disabled) {
+      background: var(--muted);
+      color: var(--foreground);
     }
   `,
   destructive: css`

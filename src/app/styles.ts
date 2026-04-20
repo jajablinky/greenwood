@@ -5,7 +5,7 @@ import { createGlobalStyle, css } from "styled-components"
  */
 const cssVariables = css`
   :root {
-    --background: oklch(0.988 0 0);
+    --background: oklch(1 0 0);
     --foreground: oklch(0.16 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.16 0 0);
@@ -118,6 +118,10 @@ const baseRules = css`
   * {
     border-color: var(--border);
     outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+  }
+
+  html {
+    background: var(--background);
   }
 
   body {
