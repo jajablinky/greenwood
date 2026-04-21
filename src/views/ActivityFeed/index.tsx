@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type FormEvent,
 } from "react"
@@ -12,7 +11,6 @@ import {
   Link2,
   MessageSquare,
   MessageSquareIcon,
-  MousePointer2Icon,
   Plus,
   Send,
   ShuffleIcon,
@@ -24,12 +22,6 @@ import {
   type ProjectRunStatus,
 } from "components/atoms/ProjectStatusPill"
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
-import {
-  Dialog,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "components/atoms/Dialog"
 import { CreateProjectDialog } from "components/molecules/CreateProjectDialog"
 import { activityDetailPath, studioPathForProtocol } from "helpers/app-route-name"
 import {
@@ -90,11 +82,13 @@ function scoreTone(score: number): "positive" | "negative" | "neutral" {
 }
 
 export function ActivityFeedPage() {
-  const { ouroFeedItems, getStatusForSlug, getThoughtLog } = useProjects()
+  const { ouroFeedItems, getStatusForSlug } = useProjects()
   const { walletAddress, connect } = useArweaveProvider()
   const { push } = useToaster()
   const [searchParams, setSearchParams] = useSearchParams()
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
+  /** When set, create-app dialog opens with this listing as the remix source. */
+  const [remixCreateFeedId, setRemixCreateFeedId] = useState<string | null>(null)
   const [votes, setVotes] = useState<Record<string, ViewerVote>>({})
   const [commentsByPost, setCommentsByPost] = useState<
     Record<string, FeedComment[]>
@@ -105,10 +99,6 @@ export function ActivityFeedPage() {
   const [composerBusyByPost, setComposerBusyByPost] = useState<
     Record<string, boolean>
   >({})
-  const [remixText, setRemixText] = useState("")
-  /** Feed row remix control opens a dialog: fork list + compose. */
-  const [remixListPostId, setRemixListPostId] = useState<string | null>(null)
-  const remixInputRef = useRef<HTMLTextAreaElement>(null)
   /** Scroll + ring a specific comment (e.g. after remix, or “Open in thread”). */
   const [highlightComment, setHighlightComment] = useState<{
     postId: string
@@ -130,10 +120,13 @@ export function ActivityFeedPage() {
     if (searchParams.get("action") !== "create") {
       return
     }
+    const remixParam = searchParams.get("remix")
     const t = window.setTimeout(() => {
+      setRemixCreateFeedId(remixParam)
       setCreateProjectOpen(true)
       const next = new URLSearchParams(searchParams)
       next.delete("action")
+      next.delete("remix")
       setSearchParams(next, { replace: true })
     }, 0)
     return () => window.clearTimeout(t)
@@ -160,14 +153,6 @@ export function ActivityFeedPage() {
     }
   }, [highlightComment])
 
-  useEffect(() => {
-    if (!remixListPostId) {
-      return
-    }
-    const t = window.setTimeout(() => remixInputRef.current?.focus(), 0)
-    return () => window.clearTimeout(t)
-  }, [remixListPostId])
-
   const sortedFeed = useMemo(() => {
     const list = [...ouroFeedItems, ...INITIAL_ACTIVITY_FEED]
     const viewerDelta = (id: string) =>
@@ -180,13 +165,22 @@ export function ActivityFeedPage() {
     return list
   }, [votes, ouroFeedItems])
 
-  const remixListDialogItem = useMemo(
-    () =>
-      remixListPostId
-        ? (sortedFeed.find((i) => i.id === remixListPostId) ?? null)
-        : null,
-    [remixListPostId, sortedFeed]
-  )
+  const remixSourceForDialog = useMemo(() => {
+    if (!remixCreateFeedId) {
+      return null
+    }
+    const row = sortedFeed.find((i) => i.id === remixCreateFeedId) ?? null
+    if (!row) {
+      return null
+    }
+    return {
+      id: row.id,
+      appName: row.appName,
+      appSlug: row.appSlug,
+      previewHtml: row.previewHtml,
+      cardTitle: row.cardTitle,
+    }
+  }, [remixCreateFeedId, sortedFeed])
 
   const toggleVote = useCallback(
     (postId: string, direction: "up" | "down") => {
@@ -260,34 +254,6 @@ export function ActivityFeedPage() {
     [connect, draftByPost, push, walletAddress]
   )
 
-  const submitRemixIdea = useCallback(
-    (postId: string) => {
-      const raw = remixText.trim()
-      if (!raw) {
-        return
-      }
-      const row: FeedComment = {
-        id: newCommentId(),
-        parentId: null,
-        author: "you",
-        authorInitials: "ME",
-        body: `Remix: ${raw}`,
-        createdAt: Date.now(),
-        score: 0,
-        viewerVote: null,
-      }
-      setCommentsByPost((prev) => ({
-        ...prev,
-        [postId]: [...(prev[postId] ?? []), row],
-      }))
-      setRemixListPostId(null)
-      setRemixText("")
-      setFeedCommentsRevealed((prev) => ({ ...prev, [postId]: true }))
-      setHighlightComment({ postId, commentId: row.id })
-    },
-    [remixText]
-  )
-
   const toggleFeedCommentVote = useCallback(
     (postId: string, commentId: string, direction: "up" | "down") => {
       setCommentsByPost((prev) => {
@@ -350,14 +316,23 @@ export function ActivityFeedPage() {
 
       <CreateProjectDialog
         open={createProjectOpen}
-        onOpenChange={setCreateProjectOpen}
+        onOpenChange={(open) => {
+          setCreateProjectOpen(open)
+          if (!open) {
+            setRemixCreateFeedId(null)
+          }
+        }}
+        remixSource={remixSourceForDialog}
       />
 
       <S.FeedCreateFab
         type="button"
         aria-label="Create app"
         title="Create app"
-        onClick={() => setCreateProjectOpen(true)}
+        onClick={() => {
+          setRemixCreateFeedId(null)
+          setCreateProjectOpen(true)
+        }}
       >
         <Plus strokeWidth={2.25} aria-hidden />
       </S.FeedCreateFab>
@@ -376,7 +351,6 @@ export function ActivityFeedPage() {
             const ouroStatus: ProjectRunStatus | undefined = ouroSlug
               ? getStatusForSlug(ouroSlug) ?? "idle"
               : undefined
-            const thoughtLines = ouroSlug ? getThoughtLog(ouroSlug) : []
             const feedComposerBusy = composerBusyByPost[item.id] === true
             const commentsThreadVisible = feedCommentsRevealed[item.id] === true
             const feedComposerContextLabel =
@@ -384,7 +358,7 @@ export function ActivityFeedPage() {
                 ? `${item.appName} — ${item.cardTitle}`
                 : cardTitle
             const feedComposerPlaceholder = ouroSlug
-              ? "Message #general (team lead sees it)…"
+              ? `What would you like ${cardTitle} to look like?`
               : "Add a comment…"
 
             return (
@@ -576,24 +550,16 @@ export function ActivityFeedPage() {
                           </S.Icon16>
                         </S.FeedViewAppLinkButton>
                         <S.CardActionBarTrailing>
-                          <S.FeedRemixToggleButton
+                          <S.FeedRemixButton
                             type="button"
                             variant="ghost"
                             size="sm"
-                            title={`${remixListCount} remixes — add idea or browse forks`}
-                            aria-label={`Remix ${item.appName}: ${remixListCount} forks, open list and composer`}
-                            aria-expanded={remixListPostId === item.id}
-                            aria-haspopup="dialog"
-                            $remixOpen={remixListPostId === item.id}
-                            onClick={() => {
-                              setRemixListPostId((cur) => {
-                                if (cur === item.id) {
-                                  setRemixText("")
-                                  return null
-                                }
-                                setRemixText("")
-                                return item.id
-                              })
+                            title={`${remixListCount} community remixes — start yours from this app`}
+                            aria-label={`Remix ${item.appName} — opens create remix with this listing (${remixListCount} other remixes on the app page)`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setRemixCreateFeedId(item.id)
+                              setCreateProjectOpen(true)
                             }}
                           >
                             <S.Icon16>
@@ -603,7 +569,7 @@ export function ActivityFeedPage() {
                             <S.TabularText>
                               {remixListCount > 99 ? "99+" : remixListCount}
                             </S.TabularText>
-                          </S.FeedRemixToggleButton>
+                          </S.FeedRemixButton>
                         </S.CardActionBarTrailing>
                       </S.CardActionBar>
                     </S.CardTweetSection>
@@ -611,76 +577,69 @@ export function ActivityFeedPage() {
 
                   <S.ThreadPanel id={`comments-${item.id}`}>
                     <S.ThreadInner>
-                      {ouroSlug ? (
-                        <DetailCommentS.ThoughtPanel aria-live="polite">
-                          <DetailCommentS.ThoughtPanelLabel>
-                            Team lead (streaming)
-                          </DetailCommentS.ThoughtPanelLabel>
-                          <DetailCommentS.ThoughtPre>
-                            {thoughtLines.length > 0
-                              ? thoughtLines.join("")
-                              : "Waiting for agent output…"}
-                          </DetailCommentS.ThoughtPre>
-                        </DetailCommentS.ThoughtPanel>
+                      {commentsThreadVisible ? (
+                        <form
+                          onSubmit={(e) =>
+                            void submitComment(e, item.id, ouroSlug)
+                          }
+                        >
+                          <label
+                            htmlFor={`feed-comment-${item.id}`}
+                            className="sr-only"
+                          >
+                            {ouroSlug ? "Message workspace" : "Add comment"}
+                          </label>
+                          <DetailCommentS.DetailComposerWrapper
+                            data-create-mode="false"
+                          >
+                            <DetailCommentS.CommentComposerShell $quietUntilFocus>
+                              <DetailCommentS.DetailCreateContextTag>
+                                <DetailCommentS.DetailCreateContextIcon>
+                                  <Send strokeWidth={2} aria-hidden />
+                                </DetailCommentS.DetailCreateContextIcon>
+                                <DetailCommentS.DetailCreateContextText>
+                                  {feedComposerContextLabel}
+                                </DetailCommentS.DetailCreateContextText>
+                              </DetailCommentS.DetailCreateContextTag>
+                              <DetailCommentS.DetailComposerFieldRow>
+                                <DetailCommentS.CommentComposerTextarea
+                                  id={`feed-comment-${item.id}`}
+                                  value={draftByPost[item.id] ?? ""}
+                                  onChange={(e) =>
+                                    setDraftByPost((p) => ({
+                                      ...p,
+                                      [item.id]: e.target.value,
+                                    }))
+                                  }
+                                  rows={1}
+                                  placeholder={feedComposerPlaceholder}
+                                />
+                                <DetailCommentS.PostCommentFab
+                                  type="submit"
+                                  disabled={
+                                    !(draftByPost[item.id] ?? "").trim() ||
+                                    feedComposerBusy
+                                  }
+                                  aria-label={
+                                    ouroSlug
+                                      ? "Send message to workspace"
+                                      : "Post comment"
+                                  }
+                                  title={
+                                    ouroSlug
+                                      ? "Send to team lead"
+                                      : "Post comment"
+                                  }
+                                >
+                                  <DetailCommentS.PostCommentFabIcon>
+                                    <ArrowUpIcon strokeWidth={2.25} aria-hidden />
+                                  </DetailCommentS.PostCommentFabIcon>
+                                </DetailCommentS.PostCommentFab>
+                              </DetailCommentS.DetailComposerFieldRow>
+                            </DetailCommentS.CommentComposerShell>
+                          </DetailCommentS.DetailComposerWrapper>
+                        </form>
                       ) : null}
-
-                      <form
-                        onSubmit={(e) => void submitComment(e, item.id, ouroSlug)}
-                      >
-                        <label
-                          htmlFor={`feed-comment-${item.id}`}
-                          className="sr-only"
-                        >
-                          {ouroSlug ? "Message workspace" : "Add comment"}
-                        </label>
-                        <DetailCommentS.DetailComposerWrapper
-                          data-create-mode="false"
-                        >
-                          <DetailCommentS.CommentComposerShell>
-                            <DetailCommentS.DetailCreateContextTag>
-                              <DetailCommentS.DetailCreateContextIcon>
-                                <Send strokeWidth={2} aria-hidden />
-                              </DetailCommentS.DetailCreateContextIcon>
-                              <DetailCommentS.DetailCreateContextText>
-                                {feedComposerContextLabel}
-                              </DetailCommentS.DetailCreateContextText>
-                            </DetailCommentS.DetailCreateContextTag>
-                            <DetailCommentS.DetailComposerFieldRow>
-                              <DetailCommentS.CommentComposerTextarea
-                                id={`feed-comment-${item.id}`}
-                                value={draftByPost[item.id] ?? ""}
-                                onChange={(e) =>
-                                  setDraftByPost((p) => ({
-                                    ...p,
-                                    [item.id]: e.target.value,
-                                  }))
-                                }
-                                rows={1}
-                                placeholder={feedComposerPlaceholder}
-                              />
-                              <DetailCommentS.PostCommentFab
-                                type="submit"
-                                disabled={
-                                  !(draftByPost[item.id] ?? "").trim() ||
-                                  feedComposerBusy
-                                }
-                                aria-label={
-                                  ouroSlug
-                                    ? "Send message to workspace"
-                                    : "Post comment"
-                                }
-                                title={
-                                  ouroSlug ? "Send to #general" : "Post comment"
-                                }
-                              >
-                                <DetailCommentS.PostCommentFabIcon>
-                                  <ArrowUpIcon strokeWidth={2.25} aria-hidden />
-                                </DetailCommentS.PostCommentFabIcon>
-                              </DetailCommentS.PostCommentFab>
-                            </DetailCommentS.DetailComposerFieldRow>
-                          </DetailCommentS.CommentComposerShell>
-                        </DetailCommentS.DetailComposerWrapper>
-                      </form>
 
                       {!commentsThreadVisible ? null : comments.length === 0 ? (
                         <DetailCommentS.EmptyComments>
@@ -728,8 +687,10 @@ export function ActivityFeedPage() {
                                       setFeedReplyDraft,
                                       toggleFeedCommentVote,
                                       submitFeedReply,
-                                      setRemixText,
-                                      setRemixListPostId,
+                                      onOpenRemixCreate: () => {
+                                        setRemixCreateFeedId(item.id)
+                                        setCreateProjectOpen(true)
+                                      },
                                     }}
                                   />
                                 ))}
@@ -773,100 +734,6 @@ export function ActivityFeedPage() {
         </S.FeedList>
       </S.FeedMain>
 
-      <Dialog
-        open={remixListPostId !== null}
-        onOpenChange={(dialogOpen) => {
-          if (!dialogOpen) {
-            setRemixListPostId(null)
-            setRemixText("")
-          }
-        }}
-      >
-        <S.RemixDialogContent>
-          {remixListDialogItem ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Remixes</DialogTitle>
-                <DialogDescription>
-                  Forks and variants spun from{" "}
-                  <S.DialogTitleAccent>
-                    {remixListDialogItem.appName}
-                  </S.DialogTitleAccent>
-                  .
-                </DialogDescription>
-              </DialogHeader>
-              <S.RemixDialogList aria-label="Remix list">
-                {mockRemixListForItem(remixListDialogItem).map((r) => (
-                  <li key={r.id}>
-                    <S.RemixDialogRowLink
-                      to={studioPathForProtocol(remixListDialogItem.appName)}
-                      onClick={() => setRemixListPostId(null)}
-                    >
-                      <S.RemixDialogAvatar>
-                        <S.RemixDialogAvatarFallback>
-                          {r.authorInitials}
-                        </S.RemixDialogAvatarFallback>
-                      </S.RemixDialogAvatar>
-                      <S.RemixDialogRowBody>
-                        <S.RemixDialogRowTitle>{r.title}</S.RemixDialogRowTitle>
-                        <S.RemixDialogRowMeta>
-                          <S.RemixDialogAuthor>{r.author}</S.RemixDialogAuthor>
-                          <span aria-hidden> · </span>
-                          <span title={new Date(r.createdAt).toLocaleString()}>
-                            {formatShortTimeAgo(r.createdAt)}
-                          </span>
-                        </S.RemixDialogRowMeta>
-                        <S.RemixDialogVotes>
-                          {formatCount(r.score)} votes
-                        </S.RemixDialogVotes>
-                      </S.RemixDialogRowBody>
-                    </S.RemixDialogRowLink>
-                  </li>
-                ))}
-              </S.RemixDialogList>
-              <S.RemixComposerSection
-                role="region"
-                aria-label="Add a remix idea"
-              >
-                <S.RemixContextChip>
-                  <S.RemixContextIcon>
-                    <MousePointer2Icon aria-hidden />
-                  </S.RemixContextIcon>
-                  <S.RemixContextName>{remixListDialogItem.appName}</S.RemixContextName>
-                </S.RemixContextChip>
-                <S.RemixComposerRow>
-                  <label className="sr-only" htmlFor="feed-remix-dialog-composer">
-                    How you want to remix this app
-                  </label>
-                  <S.RemixComposerTextarea
-                    ref={remixInputRef}
-                    id="feed-remix-dialog-composer"
-                    rows={2}
-                    value={remixText}
-                    onChange={(e) => setRemixText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                        e.preventDefault()
-                        submitRemixIdea(remixListDialogItem.id)
-                      }
-                    }}
-                    placeholder="What should this remix do differently?"
-                  />
-                  <S.RemixSendIconButton
-                    type="button"
-                    size="icon"
-                    aria-label="Send remix idea"
-                    disabled={!remixText.trim()}
-                    onClick={() => submitRemixIdea(remixListDialogItem.id)}
-                  >
-                    <ArrowUpIcon strokeWidth={2.25} />
-                  </S.RemixSendIconButton>
-                </S.RemixComposerRow>
-              </S.RemixComposerSection>
-            </>
-          ) : null}
-        </S.RemixDialogContent>
-      </Dialog>
     </S.Page>
   )
 }

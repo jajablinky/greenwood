@@ -6,7 +6,13 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react"
-import { ArrowLeftIcon, ArrowUpIcon, MessageSquare, Send } from "assets/icons"
+import {
+  ArrowLeftIcon,
+  ArrowUpIcon,
+  MessageSquare,
+  Send,
+  ShuffleIcon,
+} from "assets/icons"
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
 
 import {
@@ -19,14 +25,20 @@ import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlock
 
 import { APP_MOCK_ONLY } from "helpers/app-mode"
 import { activityDetailPath, studioPathForProtocol } from "helpers/app-route-name"
-import { INITIAL_ACTIVITY_FEED, type FeedComment } from "helpers/activity-feed-mock-data"
+import {
+  INITIAL_ACTIVITY_FEED,
+  mockRemixListForItem,
+  type FeedComment,
+} from "helpers/activity-feed-mock-data"
 import { buildCommentTree } from "helpers/comment-tree"
 import { formatCount } from "helpers/format-count"
 import { abbreviateWalletAddress } from "helpers/abbrev-wallet"
 import { formatShortTimeAgo } from "helpers/format-short-time-ago"
 import { mockWorkspaceSnapshotFromName } from "helpers/mock-workspace-snapshot"
 import {
+  ouroFeedIdForSlug,
   remixDescription,
+  remixParentSlugFromWorkspaceDescription,
   remixTeamLeadPrompt,
   workspaceSlugFromFeedId,
 } from "helpers/ouro-feed-items"
@@ -39,6 +51,8 @@ import { useArweaveProvider } from "providers/ArweaveProvider"
 import { useProjects } from "providers/ProjectsProvider"
 import { useToaster } from "providers/ToasterProvider"
 
+import { AppPreviewPhoneExpand } from "components/molecules/AppPreviewPhoneExpand/AppPreviewPhoneExpand"
+import { MockAgentTraceList } from "./MockAgentTraceList"
 import * as S from "./styles"
 
 type ViewerVote = "up" | "down" | null
@@ -58,7 +72,10 @@ function scoreTone(score: number): "positive" | "negative" | "neutral" {
   return "neutral"
 }
 
-type AppDetailLocationState = { scrollToComments?: boolean } | null
+type AppDetailLocationState = {
+  scrollToComments?: boolean
+  scrollToRemixes?: boolean
+} | null
 
 export function AppDetailPage() {
   const { feedId = "" } = useParams<{ feedId: string }>()
@@ -67,8 +84,15 @@ export function AppDetailPage() {
   const navigate = useNavigate()
   const { push } = useToaster()
   const { walletAddress, connect } = useArweaveProvider()
-  const { ouroFeedItems, addWorkspace, getStatusForSlug, getThoughtLog } =
-    useProjects()
+  const {
+    ouroFeedItems,
+    snapshotsBySlug,
+    addWorkspace,
+    getStatusForSlug,
+    getMockAgentTrace,
+    getMockAgentPhase,
+    runMockAgentTurn,
+  } = useProjects()
 
   const item = useMemo(
     () =>
@@ -79,7 +103,6 @@ export function AppDetailPage() {
   )
 
   const ouroSlug = workspaceSlugFromFeedId(decodedId)
-  const thoughtLines = ouroSlug ? getThoughtLog(ouroSlug) : []
   const ouroRunStatus: ProjectRunStatus | undefined = ouroSlug
     ? getStatusForSlug(ouroSlug) ?? "idle"
     : undefined
@@ -90,6 +113,8 @@ export function AppDetailPage() {
   const [postBusy, setPostBusy] = useState(false)
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [replyDraft, setReplyDraft] = useState("")
+  /** Ouro placeholder iframe hidden until there is thread activity or a live channel send. */
+  const [ouroLiveMessageSent, setOuroLiveMessageSent] = useState(false)
 
   useEffect(() => {
     const init =
@@ -100,10 +125,36 @@ export function AppDetailPage() {
   }, [decodedId, ouroFeedItems])
 
   useEffect(() => {
+    setOuroLiveMessageSent(false)
+  }, [decodedId])
+
+  useEffect(() => {
+    if (ouroSlug) {
+      setDetailComposerMode("comment")
+    }
+  }, [ouroSlug])
+
+  const [remixAsideOpen, setRemixAsideOpen] = useState(false)
+
+  useEffect(() => {
+    setRemixAsideOpen(false)
+  }, [decodedId])
+
+  useEffect(() => {
     const st = location.state as AppDetailLocationState
-    if (!st?.scrollToComments) return
+    const targetId = st?.scrollToRemixes
+      ? "remixes"
+      : st?.scrollToComments
+        ? "comments"
+        : null
+    if (st?.scrollToRemixes) {
+      setRemixAsideOpen(true)
+    }
+    if (!targetId) {
+      return
+    }
     const t = window.setTimeout(() => {
-      document.getElementById("comments")?.scrollIntoView({
+      document.getElementById(targetId)?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       })
@@ -117,6 +168,25 @@ export function AppDetailPage() {
     useState("")
 
   const commentTree = useMemo(() => buildCommentTree(comments), [comments])
+
+  const remixParentSlug = useMemo(() => {
+    if (!item || !ouroSlug) return null
+    const desc =
+      snapshotsBySlug[ouroSlug]?.workspace.description ?? item.detail
+    return remixParentSlugFromWorkspaceDescription(desc)
+  }, [item, ouroSlug, snapshotsBySlug])
+
+  const remixParentItem = useMemo(() => {
+    if (!remixParentSlug) return null
+    const parentId = ouroFeedIdForSlug(remixParentSlug)
+    return (
+      ouroFeedItems.find((x) => x.id === parentId) ??
+      INITIAL_ACTIVITY_FEED.find((x) => x.id === parentId) ??
+      ouroFeedItems.find((x) => x.appSlug === remixParentSlug) ??
+      INITIAL_ACTIVITY_FEED.find((x) => x.appSlug === remixParentSlug) ??
+      null
+    )
+  }, [remixParentSlug, ouroFeedItems])
 
   const toggleCommentVote = useCallback((commentId: string, direction: "up" | "down") => {
     setComments((prev) =>
@@ -196,7 +266,7 @@ export function AppDetailPage() {
   async function submitComposer(e: FormEvent) {
     e.preventDefault()
     const raw = draft.trim()
-    if (!raw) return
+    if (!raw || !item) return
 
     if (ouroSlug && APP_MOCK_ONLY) {
       if (detailComposerMode === "create") {
@@ -229,6 +299,27 @@ export function AppDetailPage() {
         },
       ])
       setDraft("")
+      setOuroLiveMessageSent(true)
+      setPostBusy(true)
+      try {
+        await runMockAgentTurn(ouroSlug, raw, item.appName, (body) => {
+          setComments((prev) => [
+            ...prev,
+            {
+              id: newCommentId(),
+              parentId: null,
+              author: "team_lead",
+              authorInitials: "TL",
+              body,
+              createdAt: Date.now(),
+              score: 0,
+              viewerVote: null,
+            },
+          ])
+        })
+      } finally {
+        setPostBusy(false)
+      }
       return
     }
 
@@ -257,6 +348,7 @@ export function AppDetailPage() {
       setPostBusy(true)
       try {
         await postMessageToGeneralChannel(ouroSlug, raw)
+        setOuroLiveMessageSent(true)
         setDraft("")
       } catch (err) {
         push({
@@ -299,6 +391,15 @@ export function AppDetailPage() {
   }
 
   function onDetailComposerKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey && ouroSlug && APP_MOCK_ONLY) {
+      if (detailComposerMode === "comment") {
+        e.preventDefault()
+        if (draft.trim() && !postBusy) {
+          void submitComposer(e as unknown as FormEvent)
+        }
+        return
+      }
+    }
     if (e.key !== "Tab" || e.shiftKey) return
     e.preventDefault()
     setDetailComposerMode((m) => {
@@ -315,7 +416,7 @@ export function AppDetailPage() {
   const detailComposerPlaceholder = ouroSlug
     ? detailComposerMode === "create"
       ? remixComposerPlaceholder
-      : "Message #general (team lead sees it)…"
+      : `What would you like ${title} to look like?`
     : detailComposerMode === "create"
       ? remixComposerPlaceholder
       : "Add a comment…"
@@ -344,13 +445,70 @@ export function AppDetailPage() {
         ? "Create a new workspace from this prompt"
         : "Scroll to comments"
       : ouroSlug
-        ? "Send to #general"
+        ? "Send to team lead"
         : "Post comment"
 
   const detailCreateContextLabel =
     item.cardTitle && item.cardTitle !== item.appName
       ? `${item.appName} — ${item.cardTitle}`
       : title
+
+  /** Until there is thread activity, show the source app’s preview (parent workspace) for remix rows. */
+  const showRemixSourcePreview =
+    ouroSlug != null &&
+    remixParentItem != null &&
+    comments.length === 0 &&
+    !ouroLiveMessageSent
+
+  const previewDisplayItem = showRemixSourcePreview ? remixParentItem : item
+
+  const showWorkspacePreview =
+    ouroSlug == null ||
+    comments.length > 0 ||
+    ouroLiveMessageSent ||
+    showRemixSourcePreview
+
+  const mockPhase = ouroSlug ? getMockAgentPhase(ouroSlug) : undefined
+  const mockTrace = ouroSlug ? getMockAgentTrace(ouroSlug) : []
+  const showMockAgentPanel =
+    APP_MOCK_ONLY &&
+    ouroSlug != null &&
+    (mockTrace.length > 0 ||
+      (mockPhase != null && mockPhase !== "idle"))
+
+  const mockPhaseLabel =
+    mockPhase === "thinking"
+      ? "Thinking"
+      : mockPhase === "exploring"
+        ? "Exploring files"
+        : mockPhase === "synthesizing"
+          ? "Writing"
+          : mockPhase === "done"
+            ? "Done"
+            : mockPhase === "idle"
+              ? "Ready"
+              : null
+
+  const remixEntries = useMemo(() => mockRemixListForItem(item), [item])
+
+  const remixBarLeadText = useMemo(() => {
+    if (commentTree.length > 0) return null
+    const first = mockTrace[0]
+    if (first?.kind === "user_line") return first.text
+    return null
+  }, [commentTree, mockTrace])
+
+  const mockTraceForPanel = useMemo(() => {
+    if (commentTree.length > 0) return mockTrace
+    if (
+      remixEntries.length > 0 &&
+      mockTrace[0]?.kind === "user_line" &&
+      remixBarLeadText
+    ) {
+      return mockTrace.slice(1)
+    }
+    return mockTrace
+  }, [commentTree, mockTrace, remixEntries.length, remixBarLeadText])
 
   return (
     <S.Page>
@@ -366,16 +524,36 @@ export function AppDetailPage() {
         </S.HeaderInner>
       </S.StickyHeader>
 
-      <S.DetailMain>
+      <S.DetailMain $ouroDock={ouroSlug != null}>
         <S.DetailGrid>
           <S.PrimaryColumn>
-            <S.PreviewFrame>
-              <S.PreviewIframe
-                title={`${item.appName} preview`}
-                srcDoc={item.previewHtml}
-                sandbox="allow-scripts"
-              />
-            </S.PreviewFrame>
+            {showWorkspacePreview ? (
+              detailComposerMode === "create" ? (
+                <AppPreviewPhoneExpand
+                  previewKey={`${decodedId}-${(previewDisplayItem.previewHtml ?? "").length}-${previewDisplayItem.id}`}
+                  previewHtml={previewDisplayItem.previewHtml}
+                  title={
+                    showRemixSourcePreview
+                      ? `${previewDisplayItem.appName} — source app preview`
+                      : `${previewDisplayItem.appName} preview`
+                  }
+                  variant="detail"
+                />
+              ) : (
+                <S.PreviewFrame>
+                  <S.PreviewIframe
+                    key={`${decodedId}-${(previewDisplayItem.previewHtml ?? "").length}-${previewDisplayItem.id}`}
+                    title={
+                      showRemixSourcePreview
+                        ? `${previewDisplayItem.appName} — source app preview`
+                        : `${previewDisplayItem.appName} preview`
+                    }
+                    srcDoc={previewDisplayItem.previewHtml}
+                    sandbox="allow-scripts"
+                  />
+                </S.PreviewFrame>
+              )
+            ) : null}
 
             <S.HeroMetaRow>
               <S.HeroTextCol>
@@ -392,35 +570,37 @@ export function AppDetailPage() {
                   · {formatShortTimeAgo(item.createdAt)} · {item.transactionId}
                 </S.SubMetaLine>
               </S.HeroTextCol>
-              <S.HeroActions>
-                <S.VoteGroup role="group" aria-label="Vote on this listing">
-                  <S.VoteIconBtn
-                    variant="vote"
-                    voteDirection="up"
-                    aria-label="Upvote"
-                    aria-pressed={vote === "up"}
-                    onClick={() => toggleVote("up")}
-                  >
-                    <S.VoteArrowWrap>
-                      <VoteBlockArrowUp filled={vote === "up"} />
-                    </S.VoteArrowWrap>
-                  </S.VoteIconBtn>
-                  <S.ScoreValue $tone={scoreTone(displayScore)} title="Score">
-                    {formatCount(displayScore)}
-                  </S.ScoreValue>
-                  <S.VoteIconBtn
-                    variant="vote"
-                    voteDirection="down"
-                    aria-label="Downvote"
-                    aria-pressed={vote === "down"}
-                    onClick={() => toggleVote("down")}
-                  >
-                    <S.VoteArrowWrap>
-                      <VoteBlockArrowDown filled={vote === "down"} />
-                    </S.VoteArrowWrap>
-                  </S.VoteIconBtn>
-                </S.VoteGroup>
-              </S.HeroActions>
+              {ouroSlug ? null : (
+                <S.HeroActions>
+                  <S.VoteGroup role="group" aria-label="Vote on this listing">
+                    <S.VoteIconBtn
+                      variant="vote"
+                      voteDirection="up"
+                      aria-label="Upvote"
+                      aria-pressed={vote === "up"}
+                      onClick={() => toggleVote("up")}
+                    >
+                      <S.VoteArrowWrap>
+                        <VoteBlockArrowUp filled={vote === "up"} />
+                      </S.VoteArrowWrap>
+                    </S.VoteIconBtn>
+                    <S.ScoreValue $tone={scoreTone(displayScore)} title="Score">
+                      {formatCount(displayScore)}
+                    </S.ScoreValue>
+                    <S.VoteIconBtn
+                      variant="vote"
+                      voteDirection="down"
+                      aria-label="Downvote"
+                      aria-pressed={vote === "down"}
+                      onClick={() => toggleVote("down")}
+                    >
+                      <S.VoteArrowWrap>
+                        <VoteBlockArrowDown filled={vote === "down"} />
+                      </S.VoteArrowWrap>
+                    </S.VoteIconBtn>
+                  </S.VoteGroup>
+                </S.HeroActions>
+              )}
             </S.HeroMetaRow>
 
             {/*
@@ -428,17 +608,118 @@ export function AppDetailPage() {
               <S.DetailTabs>…</S.DetailTabs>
             */}
             <S.CommentsSection id="comments" aria-label="Comments">
-                {ouroSlug ? (
-                  <S.ThoughtPanel aria-live="polite">
-                    <S.ThoughtPanelLabel>Team lead (streaming)</S.ThoughtPanelLabel>
-                    <S.ThoughtPre>
-                      {thoughtLines.length > 0
-                        ? thoughtLines.join("")
-                        : "Waiting for agent output…"}
-                    </S.ThoughtPre>
-                  </S.ThoughtPanel>
-                ) : null}
-                <form onSubmit={(e) => void submitComposer(e)}>
+              {remixEntries.length > 0 ? (
+                <S.RemixThreadWrap id="remixes" aria-label="Community remixes">
+                  <S.RemixThreadBar>
+                    <S.RemixThreadBarLead>
+                      {remixBarLeadText ? (
+                        <S.RemixThreadFirstSnippet title={remixBarLeadText}>
+                          {remixBarLeadText}
+                        </S.RemixThreadFirstSnippet>
+                      ) : null}
+                    </S.RemixThreadBarLead>
+                    <S.RemixThreadBarTrail>
+                      <S.RemixAsideToggleButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-expanded={remixAsideOpen}
+                        title={
+                          remixAsideOpen
+                            ? "Hide other remixes"
+                            : `Show other remixes (${remixEntries.length})`
+                        }
+                        aria-label={
+                          remixAsideOpen
+                            ? `Hide other remixes — ${remixEntries.length} listed`
+                            : `Show other remixes — ${remixEntries.length} listed`
+                        }
+                        onClick={() => {
+                          setRemixAsideOpen((v) => {
+                            const next = !v
+                            if (next) {
+                              window.setTimeout(() => {
+                                document.getElementById("remixes")?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                })
+                              }, 0)
+                            }
+                            return next
+                          })
+                        }}
+                      >
+                        <S.RemixAsideToggleIcon>
+                          <ShuffleIcon strokeWidth={2} aria-hidden />
+                        </S.RemixAsideToggleIcon>
+                        <S.RemixAsideToggleCount>
+                          {remixEntries.length > 99 ? "99+" : remixEntries.length}
+                        </S.RemixAsideToggleCount>
+                      </S.RemixAsideToggleButton>
+                    </S.RemixThreadBarTrail>
+                  </S.RemixThreadBar>
+                  {remixAsideOpen ? (
+                    <S.RemixAsideList>
+                      {remixEntries.map((r) => (
+                        <li key={r.id}>
+                          <S.RemixCardLink
+                            to={detailStudioHref}
+                            title={`Open studio — ${r.title}`}
+                          >
+                            <S.RemixThumb>
+                              <S.RemixThumbIframe
+                                srcDoc={r.previewHtml}
+                                sandbox="allow-scripts"
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                                title=""
+                              />
+                            </S.RemixThumb>
+                            <S.RemixCardBody>
+                              <S.RemixCardTitle>{r.title}</S.RemixCardTitle>
+                              <S.RemixCardMeta>
+                                <S.RemixCardAuthor>{r.author}</S.RemixCardAuthor>
+                                <span aria-hidden> · </span>
+                                <span title={new Date(r.createdAt).toLocaleString()}>
+                                  {formatShortTimeAgo(r.createdAt)}
+                                </span>
+                              </S.RemixCardMeta>
+                              <S.RemixCardVotes>
+                                {formatCount(r.score)} votes
+                              </S.RemixCardVotes>
+                            </S.RemixCardBody>
+                          </S.RemixCardLink>
+                        </li>
+                      ))}
+                    </S.RemixAsideList>
+                  ) : null}
+                </S.RemixThreadWrap>
+              ) : null}
+              {showMockAgentPanel ? (
+                <S.MockAgentActivity aria-live="polite">
+                  {mockPhaseLabel ? (
+                    <S.MockAgentPhaseRow>
+                      <S.MockAgentPhaseDot
+                        $pulse={
+                          mockPhase != null &&
+                          mockPhase !== "idle" &&
+                          mockPhase !== "done"
+                        }
+                      />
+                      {mockPhaseLabel}
+                    </S.MockAgentPhaseRow>
+                  ) : null}
+                  {mockTraceForPanel.length > 0 ? (
+                    <MockAgentTraceList entries={mockTraceForPanel} />
+                  ) : null}
+                </S.MockAgentActivity>
+              ) : null}
+              <S.DetailChatComposerSheet $workspace={ouroSlug != null}>
+                <form
+                  onSubmit={(e) => {
+                    void submitComposer(e)
+                  }}
+                >
                   <span className="sr-only" aria-live="polite" aria-atomic="true">
                     {detailComposerModeAnnounce}
                   </span>
@@ -482,8 +763,10 @@ export function AppDetailPage() {
                     </S.CommentComposerShell>
                   </S.DetailComposerWrapper>
                 </form>
+              </S.DetailChatComposerSheet>
 
-                {comments.length === 0 ? (
+              {comments.length === 0 ? (
+                ouroSlug ? null : (
                   <S.EmptyComments>
                     <S.EmptyCommentsIcon>
                       <MessageSquare strokeWidth={1} aria-hidden />
@@ -493,39 +776,40 @@ export function AppDetailPage() {
                       Be the first to add a comment
                     </S.EmptyCommentsHint>
                   </S.EmptyComments>
-                ) : (
-                  <CommentsStatRowList>
-                    {commentTree.map((node) => (
-                      <CommentThreadNode
-                        key={node.id}
-                        mode="detail"
-                        node={node}
-                        detail={{
-                          ouroSlug,
-                          replyingToId,
-                          setReplyingToId,
-                          replyDraft,
-                          setReplyDraft,
-                          submitReply,
-                          toggleCommentVote,
-                          onRemixFromComment: () => {
-                            document
-                              .getElementById("comments")
-                              ?.scrollIntoView({
-                                behavior: "smooth",
-                                block: "start",
-                              })
-                          },
-                        }}
-                        detailItem={{
-                          appName: item.appName,
-                          previewHtml: item.previewHtml,
-                        }}
-                        detailStudioHref={detailStudioHref}
-                      />
-                    ))}
-                  </CommentsStatRowList>
-                )}
+                )
+              ) : (
+                <CommentsStatRowList>
+                  {commentTree.map((node) => (
+                    <CommentThreadNode
+                      key={node.id}
+                      mode="detail"
+                      node={node}
+                      detail={{
+                        ouroSlug,
+                        replyingToId,
+                        setReplyingToId,
+                        replyDraft,
+                        setReplyDraft,
+                        submitReply,
+                        toggleCommentVote,
+                        onRemixFromComment: () => {
+                          document
+                            .getElementById("comments")
+                            ?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            })
+                        },
+                      }}
+                      detailItem={{
+                        appName: item.appName,
+                        previewHtml: item.previewHtml,
+                      }}
+                      detailStudioHref={detailStudioHref}
+                    />
+                  ))}
+                </CommentsStatRowList>
+              )}
             </S.CommentsSection>
           </S.PrimaryColumn>
         </S.DetailGrid>

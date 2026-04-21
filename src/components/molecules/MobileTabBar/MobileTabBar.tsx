@@ -23,8 +23,8 @@ function HomeGlyph() {
   )
 }
 
-function NotificationsGlyph() {
-  const m = useMatch({ path: "/notifications", end: true })
+function ProfileGlyph() {
+  const m = useMatch({ path: "/profile", end: false })
   const active = m != null
   return (
     <Bell
@@ -45,14 +45,13 @@ export function MobileTabBar() {
 
   return (
     <S.Bar aria-label="Main">
-      <S.TabNavLink to="/" end>
+      <S.TabNavLink to="/" end aria-label="Home">
         <S.IconSlot>
           <HomeGlyph />
         </S.IconSlot>
-        <span data-tab-label>Home</span>
       </S.TabNavLink>
 
-      <S.TabButton type="button" onClick={openCreate} aria-label="Create">
+      <S.TabButton type="button" onClick={openCreate} aria-label="Create app">
         <S.IconSlot>
           <SquarePlus
             width={ICON}
@@ -61,15 +60,12 @@ export function MobileTabBar() {
             aria-hidden
           />
         </S.IconSlot>
-        <span data-tab-label>Create</span>
       </S.TabButton>
 
-      <S.TabNavLink to="/notifications">
+      <S.TabNavLink to="/profile" aria-label="Profile and activity">
         <S.IconSlot>
-          <NotificationsGlyph />
-          <S.BellBadge aria-hidden>2</S.BellBadge>
+          <ProfileGlyph />
         </S.IconSlot>
-        <span data-tab-label>Notifications</span>
       </S.TabNavLink>
     </S.Bar>
   )

@@ -4,7 +4,15 @@ import React from "react"
 import type { ProjectRunStatus } from "components/atoms/ProjectStatusPill"
 import { APP_MOCK_ONLY } from "helpers/app-mode"
 import type { GlobalFeedItem } from "helpers/activity-feed-mock-data"
-import { globalFeedItemFromWorkspace } from "helpers/ouro-feed-items"
+import type { MockTraceEntry } from "helpers/mock-agent-trace"
+import {
+  runMockWorkspaceAgentSequence,
+  type MockAgentPhase,
+} from "helpers/mock-workspace-agent-turn"
+import {
+  globalFeedItemFromWorkspace,
+  ouroFeedIdForSlug,
+} from "helpers/ouro-feed-items"
 import type { WorkspaceSnapshot } from "helpers/ouroboros/types"
 import { subscribeWorkspaceEvents, type WorkspaceEventPayload } from "helpers/ouroboros/events"
 import { useToaster } from "providers/ToasterProvider"
@@ -17,6 +25,15 @@ type ProjectsContextValue = {
   addWorkspace: (snapshot: WorkspaceSnapshot) => void
   getStatusForSlug: (slug: string | undefined) => ProjectRunStatus | undefined
   getThoughtLog: (slug: string | undefined) => string[]
+  getMockAgentTrace: (slug: string | undefined) => MockTraceEntry[]
+  getMockAgentPhase: (slug: string | undefined) => MockAgentPhase | undefined
+  getMockExploredFiles: (slug: string | undefined) => string[]
+  runMockAgentTurn: (
+    slug: string,
+    userMessage: string,
+    appName: string,
+    onAssistantMessage: (body: string) => void,
+  ) => Promise<void>
 }
 
 const ProjectsContext = React.createContext<ProjectsContextValue | null>(null)
@@ -41,6 +58,15 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   const [snapshotsBySlug, setSnapshotsBySlug] = React.useState<Record<string, WorkspaceSnapshot>>({})
   const [projectStatus, setProjectStatus] = React.useState<Record<string, ProjectRunStatus>>({})
   const [thoughtLogBySlug, setThoughtLogBySlug] = React.useState<Record<string, string[]>>({})
+  const [mockAgentPhaseBySlug, setMockAgentPhaseBySlug] = React.useState<
+    Record<string, MockAgentPhase>
+  >({})
+  const [mockExploredFilesBySlug, setMockExploredFilesBySlug] = React.useState<
+    Record<string, string[]>
+  >({})
+  const [mockAgentTraceBySlug, setMockAgentTraceBySlug] = React.useState<
+    Record<string, MockTraceEntry[]>
+  >({})
   const subsRef = React.useRef<Map<string, () => void>>(new Map())
 
   const appendThought = React.useCallback((slug: string, line: string) => {
@@ -142,6 +168,77 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
     [thoughtLogBySlug],
   )
 
+  const clearMockTrace = React.useCallback((slug: string) => {
+    setMockAgentTraceBySlug((prev) => ({ ...prev, [slug]: [] }))
+  }, [])
+
+  const pushMockTrace = React.useCallback((slug: string, entry: MockTraceEntry) => {
+    setMockAgentTraceBySlug((prev) => ({
+      ...prev,
+      [slug]: [...(prev[slug] ?? []), entry].slice(-200),
+    }))
+  }, [])
+
+  const getMockAgentTrace = React.useCallback(
+    (slug: string | undefined) =>
+      slug ? mockAgentTraceBySlug[slug] ?? [] : [],
+    [mockAgentTraceBySlug],
+  )
+
+  const getMockAgentPhase = React.useCallback(
+    (slug: string | undefined) =>
+      slug ? mockAgentPhaseBySlug[slug] : undefined,
+    [mockAgentPhaseBySlug],
+  )
+
+  const getMockExploredFiles = React.useCallback(
+    (slug: string | undefined) =>
+      slug ? mockExploredFilesBySlug[slug] ?? [] : [],
+    [mockExploredFilesBySlug],
+  )
+
+  const updateOuroFeedItemPreview = React.useCallback(
+    (slug: string, previewHtml: string) => {
+      const id = ouroFeedIdForSlug(slug)
+      setOuroFeedItems((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, previewHtml } : item)),
+      )
+    },
+    [],
+  )
+
+  const runMockAgentTurn = React.useCallback(
+    async (
+      slug: string,
+      userMessage: string,
+      appName: string,
+      onAssistantMessage: (body: string) => void,
+    ) => {
+      if (!APP_MOCK_ONLY) {
+        return
+      }
+      await runMockWorkspaceAgentSequence({
+        slug,
+        userMessage,
+        appName,
+        setPhase: (s, phase) =>
+          setMockAgentPhaseBySlug((prev) => ({ ...prev, [s]: phase })),
+        clearTrace: clearMockTrace,
+        clearFiles: (s) =>
+          setMockExploredFilesBySlug((prev) => ({ ...prev, [s]: [] })),
+        pushFile: (s, path) =>
+          setMockExploredFilesBySlug((prev) => ({
+            ...prev,
+            [s]: [...(prev[s] ?? []), path],
+          })),
+        pushTrace: pushMockTrace,
+        updatePreview: updateOuroFeedItemPreview,
+        onAssistantMessage,
+      })
+    },
+    [clearMockTrace, pushMockTrace, updateOuroFeedItemPreview],
+  )
+
   const value = React.useMemo<ProjectsContextValue>(
     () => ({
       ouroFeedItems,
@@ -151,6 +248,10 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
       addWorkspace,
       getStatusForSlug,
       getThoughtLog,
+      getMockAgentTrace,
+      getMockAgentPhase,
+      getMockExploredFiles,
+      runMockAgentTurn,
     }),
     [
       ouroFeedItems,
@@ -160,6 +261,10 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
       addWorkspace,
       getStatusForSlug,
       getThoughtLog,
+      getMockAgentTrace,
+      getMockAgentPhase,
+      getMockExploredFiles,
+      runMockAgentTurn,
     ],
   )
 

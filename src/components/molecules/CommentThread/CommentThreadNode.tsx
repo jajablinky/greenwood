@@ -54,8 +54,8 @@ type FeedCtx = {
     direction: "up" | "down",
   ) => void
   submitFeedReply: (e: FormEvent, postId: string) => void
-  setRemixText: (v: string | ((s: string) => string)) => void
-  setRemixListPostId: (v: string | null | ((s: string | null) => string | null)) => void
+  /** Opens create-app flow with this feed post as the remix source. */
+  onOpenRemixCreate: () => void
 }
 
 type DetailProps = {
@@ -163,8 +163,7 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
 
   function onRemixSecondary() {
     if (mode === "feed") {
-      props.feed.setRemixText("")
-      props.feed.setRemixListPostId(props.feed.postId)
+      props.feed.onOpenRemixCreate()
     } else {
       props.detail.onRemixFromComment?.()
     }
@@ -174,29 +173,36 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
     setThreadHidden((h) => !h)
   }, [])
 
+  const hideCommentVotes =
+    mode === "detail" && props.detail.ouroSlug !== null
+
   const inner = (
     <>
-      <S.CommentMiniVoteCol>
-        <S.CommentMiniVoteBtn
-          variant="vote"
-          voteDirection="up"
-          aria-label="Upvote comment"
-          aria-pressed={vv === "up"}
-          onClick={onVoteUp}
-        >
-          <VoteBlockArrowUp filled={vv === "up"} />
-        </S.CommentMiniVoteBtn>
-        <S.CommentMiniVoteScore $tone={tone}>{formatCount(display)}</S.CommentMiniVoteScore>
-        <S.CommentMiniVoteBtn
-          variant="vote"
-          voteDirection="down"
-          aria-label="Downvote comment"
-          aria-pressed={vv === "down"}
-          onClick={onVoteDown}
-        >
-          <VoteBlockArrowDown filled={vv === "down"} />
-        </S.CommentMiniVoteBtn>
-      </S.CommentMiniVoteCol>
+      {hideCommentVotes ? null : (
+        <S.CommentMiniVoteCol>
+          <S.CommentMiniVoteBtn
+            variant="vote"
+            voteDirection="up"
+            aria-label="Upvote comment"
+            aria-pressed={vv === "up"}
+            onClick={onVoteUp}
+          >
+            <VoteBlockArrowUp filled={vv === "up"} />
+          </S.CommentMiniVoteBtn>
+          <S.CommentMiniVoteScore $tone={tone}>
+            {formatCount(display)}
+          </S.CommentMiniVoteScore>
+          <S.CommentMiniVoteBtn
+            variant="vote"
+            voteDirection="down"
+            aria-label="Downvote comment"
+            aria-pressed={vv === "down"}
+            onClick={onVoteDown}
+          >
+            <VoteBlockArrowDown filled={vv === "down"} />
+          </S.CommentMiniVoteBtn>
+        </S.CommentMiniVoteCol>
+      )}
       <S.CommentMainRow>
         <S.CommentAvatarLink
           to={profilePathForAuthor(node.author)}
@@ -315,7 +321,7 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
           <label className="sr-only" htmlFor={`reply-${node.id}`}>
             Write a reply
           </label>
-          <S.InlineComposerShell>
+          <S.InlineComposerShell $quietUntilFocus>
             <S.InlineComposerTextarea
               id={`reply-${node.id}`}
               rows={1}
@@ -346,7 +352,7 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
         >
           Write a reply
         </label>
-        <S.InlineComposerShell>
+        <S.InlineComposerShell $quietUntilFocus>
           <S.InlineComposerTextarea
             id={`feed-reply-${props.feed.postId}-${node.id}`}
             rows={1}
@@ -374,7 +380,10 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
       : {}
 
   return (
-    <S.CommentThreadRootLi {...liProps}>
+    <S.CommentThreadRootLi
+      $detailChatFlow={hideCommentVotes}
+      {...liProps}
+    >
       <S.CommentThreadBranch
         data-has-replies={
           hasReplies && !threadHidden ? "" : undefined

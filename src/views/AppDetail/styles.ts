@@ -10,6 +10,31 @@ import {
   InlineComposerTextarea,
 } from "components/molecules/CommentThread/styles"
 
+const mobileOuroDockFab = css`
+  width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  background: oklch(0.97 0 0);
+  color: var(--muted-foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+
+  &:hover:not(:disabled) {
+    background: oklch(0.94 0 0);
+    color: var(--foreground);
+  }
+
+  .dark & {
+    background: oklch(0.27 0 0);
+    color: var(--muted-foreground);
+    box-shadow: none;
+  }
+
+  .dark &:hover:not(:disabled) {
+    background: oklch(0.32 0 0);
+    color: var(--foreground);
+  }
+`
+
 const tabular = css`
   font-variant-numeric: tabular-nums;
 `
@@ -94,10 +119,20 @@ export const HeaderTitle = styled.span`
   color: var(--muted-foreground);
 `
 
-export const DetailMain = styled.main`
+export const DetailMain = styled.main<{ $ouroDock?: boolean }>`
   margin-inline: auto;
   max-width: 48rem;
   padding: 1rem;
+
+  ${(p) =>
+    p.$ouroDock &&
+    css`
+      @media (max-width: 639.98px) {
+        /* Space for fixed composer above tab bar */
+        padding-bottom: calc(11.5rem + env(safe-area-inset-bottom, 0px));
+      }
+    `}
+
   @media (min-width: 640px) {
     max-width: 40rem;
     padding-inline: 1.5rem;
@@ -364,6 +399,238 @@ export const TabsPanelComments = styled(TabsContent).attrs({
   display: flex;
   flex-direction: column;
   gap: 0;
+`
+
+/** Mock-only: team lead activity (thinking, files, trace) above the thread. */
+export const MockAgentActivity = styled.div`
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-radius: var(--radius-lg);
+
+  .dark & {
+    background: color-mix(in oklab, var(--muted) 40%, var(--card));
+  }
+`
+
+export const MockAgentPhaseRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+`
+
+export const MockAgentPhaseDot = styled.span<{ $pulse?: boolean }>`
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--ring);
+
+  ${(p) =>
+    p.$pulse &&
+    css`
+      animation: mock-pulse 1.1s ease-in-out infinite;
+      @keyframes mock-pulse {
+        0%,
+        100% {
+          opacity: 0.35;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.15);
+        }
+      }
+    `}
+`
+
+export const MockAgentTraceStream = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: min(70vh, 28rem);
+  overflow: auto;
+  padding-right: 0.15rem;
+`
+
+export const MockAgentUserLine = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+`
+
+export const MockAgentThoughtElapsed = styled.p`
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35rem;
+  color: var(--muted-foreground);
+`
+
+export const MockAgentTraceLine = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: color-mix(in oklab, var(--foreground) 88%, transparent);
+`
+
+/** Command lines — same visual weight as trace text (no card chrome). */
+export const MockAgentCommandBlock = styled.div`
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: color-mix(in oklab, var(--foreground) 88%, transparent);
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  code {
+    display: block;
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: inherit;
+    color: inherit;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+`
+
+export const MockAgentDiffWrap = styled.div`
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  overflow: hidden;
+  background: color-mix(in oklab, var(--background) 92%, var(--muted));
+`
+
+export const MockAgentDiffHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--foreground);
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: color-mix(in oklab, var(--muted) 35%, transparent);
+`
+
+export const MockAgentDiffStats = styled.span`
+  display: inline-flex;
+  gap: 0.35rem;
+  font-variant-numeric: tabular-nums;
+
+  span:first-child {
+    color: oklch(0.52 0.14 145);
+  }
+  span:last-child {
+    color: oklch(0.55 0.2 25);
+  }
+
+  .dark & span:first-child {
+    color: oklch(0.72 0.12 145);
+  }
+  .dark & span:last-child {
+    color: oklch(0.72 0.14 25);
+  }
+`
+
+export const MockAgentDiffBody = styled.div`
+  font-size: 0.8125rem;
+  line-height: 1.5;
+`
+
+export const MockAgentDiffRow = styled.div<{ $variant: "add" | "remove" | "context" }>`
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.1rem 0.35rem;
+
+  ${(p) =>
+    p.$variant === "add" &&
+    css`
+      background: color-mix(in oklab, oklch(0.55 0.14 145) 14%, transparent);
+    `}
+  ${(p) =>
+    p.$variant === "remove" &&
+    css`
+      background: color-mix(in oklab, oklch(0.55 0.2 25) 12%, transparent);
+    `}
+  ${(p) =>
+    p.$variant === "context" &&
+    css`
+      color: var(--muted-foreground);
+    `}
+`
+
+export const MockAgentDiffRowPrefix = styled.span`
+  flex-shrink: 0;
+  width: 0.65rem;
+  user-select: none;
+  opacity: 0.65;
+`
+
+export const MockAgentReviewRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+`
+
+export const MockAgentReviewBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--background) 85%, var(--muted));
+  cursor: default;
+
+  .dark & {
+    background: color-mix(in oklab, var(--card) 70%, var(--muted));
+  }
+`
+
+export const MockAgentReviewStats = styled.span`
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: oklch(0.52 0.14 145);
+
+  .dark & {
+    color: oklch(0.72 0.12 145);
+  }
+`
+
+export const MockAgentCommitSplit = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  cursor: default;
+
+  span:last-child {
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
 `
 
 /** Comments-only layout (tabs hidden). Keeps #comments for deep links. */
@@ -635,11 +902,83 @@ export const CopyIcon = styled.span`
   }
 `
 
-export const RemixAside = styled.aside`
+/** Matches feed card ghost toolbar — expand/collapse “Other remixes”. */
+const remixGhostToolbarButtonCss = css`
+  height: 2rem;
+  min-height: 2rem;
+  flex-shrink: 0;
+  column-gap: 0.25rem;
+  border-radius: 9999px;
+  border: 0;
+  padding-inline: 0.3125rem;
+  color: var(--muted-foreground);
+  background: transparent;
+  text-decoration: none;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--foreground) 10%, transparent) !important;
+    color: var(--foreground);
+  }
+
+  .dark &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--foreground) 14%, transparent) !important;
+  }
+
+  @media (min-width: 640px) {
+    height: 2.125rem;
+    min-height: 2.125rem;
+    column-gap: 0.3125rem;
+    padding-inline: 0.5rem;
+  }
+`
+
+export const RemixAsideToggleButton = styled(Button)`
+  ${remixGhostToolbarButtonCss};
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: 0.375rem;
+  margin: 0;
+
+  @media (min-width: 640px) {
+    column-gap: 0.5rem;
+  }
+`
+
+export const RemixAsideToggleIcon = styled.span`
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+
+  & > svg {
+    width: 100%;
+    height: 100%;
+  }
+`
+
+export const RemixAsideToggleCount = styled.span`
+  ${tabular};
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--muted-foreground);
+
+  @media (max-width: 639.98px) {
+    font-size: 0.75rem;
+  }
+
+  @media (min-width: 640px) {
+    font-size: 0.875rem;
+  }
+`
+
+/** Under hero: first thread line (left) + remix toggle (right). Anchor for #remixes. */
+export const RemixThreadWrap = styled.div`
   min-width: 0;
   scroll-margin-top: 6rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding-top: 1.25rem;
   border-top: 1px solid rgb(0 0 0 / 8%);
 
   .dark & {
@@ -647,12 +986,34 @@ export const RemixAside = styled.aside`
   }
 `
 
-export const RemixAsideTitle = styled.h2`
-  margin: 0 0 0.5rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
+export const RemixThreadBar = styled.div`
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+`
+
+export const RemixThreadBarLead = styled.div`
+  min-width: 0;
+  flex: 1 1 0%;
+`
+
+/** First root comment or mock “You · …” line — aligns with thread column under the app. */
+export const RemixThreadFirstSnippet = styled.p`
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
   color: var(--muted-foreground);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+`
+
+export const RemixThreadBarTrail = styled.div`
+  flex-shrink: 0;
 `
 
 export const RemixAsideList = styled.ul`
@@ -732,16 +1093,8 @@ export const RemixCardVotes = styled.p`
   color: var(--muted-foreground);
 `
 
-/** Create mode + focus-within: context pill, round send; textarea stays flush with page (no fill). */
+/** Create mode + focus-within: context pill, round send; textarea keeps filled pill + border. */
 export const DetailComposerWrapper = styled.div`
-  ${InlineComposerTextarea} {
-    background: transparent;
-  }
-
-  .dark & ${InlineComposerTextarea} {
-    background: transparent;
-  }
-
   &[data-create-mode="true"]:focus-within .detail-create-context-tag {
     display: inline-flex;
   }
@@ -771,6 +1124,49 @@ export const DetailComposerWrapper = styled.div`
     background: oklch(0.32 0 0);
     color: var(--foreground);
   }
+`
+
+/** Ouro workspace: narrow screens pin the main composer above the tab bar (expanded). */
+export const DetailChatComposerSheet = styled.div<{ $workspace?: boolean }>`
+  ${(p) =>
+    p.$workspace &&
+    css`
+      @media (max-width: 639.98px) {
+        position: fixed;
+        z-index: 41;
+        left: 0;
+        right: 0;
+        bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
+        padding: 0.5rem 0.75rem 0.5rem;
+        border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+        background: color-mix(in oklab, var(--card) 94%, var(--background));
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 -4px 24px rgb(0 0 0 / 6%);
+
+        .dark & {
+          background: color-mix(in oklab, var(--card) 88%, transparent);
+          box-shadow: 0 -4px 24px rgb(0 0 0 / 25%);
+        }
+
+        & ${DetailComposerWrapper} {
+          margin: 0;
+        }
+
+        & ${DetailComposerWrapper}[data-create-mode="true"] .detail-create-context-tag {
+          display: inline-flex;
+        }
+
+        & ${InlineComposerTextarea} {
+          min-height: 6.75rem;
+          padding-top: 0.75rem;
+        }
+
+        & ${InlineComposerFab} {
+          ${mobileOuroDockFab}
+        }
+      }
+    `}
 `
 
 export const DetailComposerFieldRow = styled.div`
@@ -821,34 +1217,6 @@ export const DetailCreateContextText = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`
-
-export const ThoughtPanel = styled.div`
-  margin-bottom: 0.75rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: var(--muted);
-  padding: 0.5rem 0.65rem;
-`
-
-export const ThoughtPanelLabel = styled.div`
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-  margin-bottom: 0.35rem;
-`
-
-export const ThoughtPre = styled.pre`
-  margin: 0;
-  max-height: 12rem;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--foreground);
 `
 
 export const OuroRemixStack = styled.div`

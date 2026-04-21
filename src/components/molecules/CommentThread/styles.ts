@@ -129,7 +129,7 @@ export const CommentMainRow = styled.div`
   gap: 0.75rem;
 `
 
-export const CommentThreadRootLi = styled.li`
+export const CommentThreadRootLi = styled.li<{ $detailChatFlow?: boolean }>`
   list-style: none;
   margin: 0;
   padding: 0;
@@ -143,6 +143,17 @@ export const CommentThreadRootLi = styled.li`
     --comment-avatar-center-x: calc(2.25rem + 0.5rem + 1rem);
     --comment-avatar-half: 1rem;
   }
+
+  ${(p) =>
+    p.$detailChatFlow &&
+    css`
+      --comment-avatar-center-x: calc(0.5rem + 0.875rem);
+      --comment-content-inset-left: 0.5rem;
+
+      @media (min-width: 640px) {
+        --comment-avatar-center-x: calc(0.5rem + 1rem);
+      }
+    `}
 `
 
 export const CommentStatRow = styled.div<{ $highlighted?: boolean }>`
@@ -181,9 +192,9 @@ export const CommentReplyRow = styled.div`
 `
 
 /**
- * Detail-style inline composer: no border until focus; send control is icon-only (arrow).
- * Collapsed until focus — shell expands min-height when :focus-within.
- * Shared by AppDetail root composer and thread replies.
+ * Detail-style inline composer: sans-serif, bordered field + send FAB.
+ * Pass `$quietUntilFocus` on feed “Add a comment” / reply shells to hide border + FAB until :focus-within.
+ * App detail root composer omits `$quietUntilFocus` so chrome stays visible.
  */
 export const InlineComposerTextarea = styled.textarea`
   /* One line + existing padding; stays below expanded 5.5rem */
@@ -191,12 +202,15 @@ export const InlineComposerTextarea = styled.textarea`
   width: 100%;
   resize: none;
   border-radius: var(--radius-2xl);
-  border: 0;
+  border: 1px solid color-mix(in oklab, var(--border) 85%, rgb(0 0 0 / 14%));
   background: #fff;
   padding: calc(
       var(--comment-fab-top) + var(--comment-fab-height) / 2 - 0.625rem
     )
-    0.75rem 0.75rem 0.75rem;
+    3rem
+    0.75rem
+    0.75rem;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   line-height: 1.25rem;
   color: var(--foreground);
@@ -205,17 +219,20 @@ export const InlineComposerTextarea = styled.textarea`
   box-shadow: none;
   transition:
     min-height 200ms cubic-bezier(0.4, 0, 0.2, 1),
-    padding-right 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 
   &::placeholder {
     color: var(--muted-foreground);
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 30%, transparent);
+    border-color: color-mix(in oklab, var(--ring) 55%, var(--border));
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--ring) 35%, transparent);
   }
 
   .dark & {
+    border-color: rgb(255 255 255 / 14%);
     background: var(--background);
   }
 `
@@ -286,23 +303,60 @@ export const InlineComposerFabIcon = styled.span`
   }
 `
 
-export const InlineComposerShell = styled.div`
+export const InlineComposerShell = styled.div<{ $quietUntilFocus?: boolean }>`
   position: relative;
   --comment-fab-top: 0.625rem;
   --comment-fab-height: 2.25rem;
 
-  ${InlineComposerFab} {
-    display: none;
-  }
+  ${(p) =>
+    p.$quietUntilFocus
+      ? css`
+          ${InlineComposerTextarea} {
+            border-color: transparent;
+            background: transparent;
+            padding-right: 0.75rem;
+            box-shadow: none;
+          }
+          .dark & ${InlineComposerTextarea} {
+            border-color: transparent;
+            background: transparent;
+          }
+          ${InlineComposerFab} {
+            display: none;
+          }
+          &:focus-within ${InlineComposerTextarea},
+          &:has(${InlineComposerTextarea}:not(:placeholder-shown))
+            ${InlineComposerTextarea} {
+            border: 1px solid
+              color-mix(in oklab, var(--border) 85%, rgb(0 0 0 / 14%));
+            background: #fff;
+            padding-right: 3rem;
+          }
+          .dark &:focus-within ${InlineComposerTextarea},
+          .dark &:has(${InlineComposerTextarea}:not(:placeholder-shown))
+            ${InlineComposerTextarea} {
+            border-color: rgb(255 255 255 / 14%);
+            background: var(--background);
+          }
+          &:focus-within ${InlineComposerTextarea},
+          &:has(${InlineComposerTextarea}:not(:placeholder-shown))
+            ${InlineComposerTextarea} {
+            min-height: 5.5rem;
+          }
+          &:focus-within ${InlineComposerFab},
+          &:has(${InlineComposerTextarea}:not(:placeholder-shown)) ${InlineComposerFab} {
+            display: inline-flex;
+          }
+        `
+      : css`
+          ${InlineComposerFab} {
+            display: inline-flex;
+          }
 
-  &:focus-within ${InlineComposerFab} {
-    display: inline-flex;
-  }
-
-  &:focus-within ${InlineComposerTextarea} {
-    min-height: 5.5rem;
-    padding-right: 3rem;
-  }
+          &:focus-within ${InlineComposerTextarea} {
+            min-height: 5.5rem;
+          }
+        `}
 `
 
 /** Shared with feed "Add a comment" — same layout and chrome; copy differs in JSX. */
@@ -325,6 +379,7 @@ export const CommentComposerTextarea = styled.textarea`
   border: 1px solid rgb(0 0 0 / 8%);
   background: #fff;
   padding: 0.5rem 0.75rem;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   line-height: 1.25rem;
   color: var(--foreground);
@@ -483,6 +538,7 @@ export const CommentBody = styled.p`
   line-height: 1.375rem;
   color: color-mix(in oklab, var(--foreground) 92%, transparent);
   overflow-wrap: anywhere;
+  white-space: pre-line;
 `
 
 /** Fork label + prompt excerpt above the remix preview iframe. */
@@ -603,7 +659,7 @@ export const RemixViewAppLink = styled(Link)`
 `
 
 /**
- * Ghost pill icon-only — matches feed `FeedRemixToggleButton` / `FeedActionIconButton`
+ * Ghost pill icon-only — matches feed `FeedRemixButton` / `FeedActionIconButton`
  * (muted, circular hover); shuffle icon only, no label.
  */
 export const RemixThreadIconButton = styled(Button).attrs({

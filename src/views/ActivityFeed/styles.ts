@@ -4,7 +4,6 @@ import { Menu } from "@base-ui/react/menu"
 
 import { Avatar, AvatarFallback } from "components/atoms/Avatar"
 import { Button } from "components/atoms/Button"
-import { DialogContent } from "components/atoms/Dialog"
 import { ConnectWalletButton } from "components/molecules/ConnectWalletButton"
 
 const tabular = css`
@@ -68,20 +67,17 @@ export const FeedCreateFab = styled.button`
     justify-content: center;
     padding: 0;
     border-radius: 9999px;
-    border: 1px solid color-mix(in oklab, var(--foreground) 14%, transparent);
-    background: var(--foreground);
-    color: var(--background);
+    border: 1px solid var(--border);
+    background: color-mix(in oklab, var(--foreground) 10%, var(--muted));
+    color: var(--foreground);
     cursor: pointer;
-    box-shadow:
-      0 1px 2px rgb(0 0 0 / 8%),
-      0 0.5rem 1.25rem rgb(0 0 0 / 12%);
+    box-shadow: none;
     transition:
       background-color 150ms ease,
-      transform 150ms ease,
-      box-shadow 150ms ease;
+      transform 150ms ease;
 
     &:hover {
-      background: color-mix(in oklab, var(--foreground) 88%, var(--background));
+      background: color-mix(in oklab, var(--foreground) 14%, var(--muted));
     }
 
     &:active {
@@ -101,10 +97,13 @@ export const FeedCreateFab = styled.button`
     }
 
     .dark & {
-      border-color: color-mix(in oklab, var(--foreground) 22%, transparent);
-      box-shadow:
-        0 1px 2px rgb(0 0 0 / 35%),
-        0 0.5rem 1.25rem rgb(0 0 0 / 45%);
+      border-color: var(--border);
+      background: color-mix(in oklab, var(--muted) 78%, var(--foreground));
+      box-shadow: none;
+    }
+
+    .dark &:hover {
+      background: color-mix(in oklab, var(--muted) 68%, var(--foreground));
     }
   }
 `
@@ -122,15 +121,75 @@ export const HeaderConnectWalletButton = styled(ConnectWalletButton).attrs({
   }
 `
 
+/** Connected wallet — circular avatar; links to profile (disconnect from profile wallet control). */
+export const HeaderWalletAvatarLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    opacity: 0.92;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+`
+
+export const HeaderWalletAvatar = styled(Avatar).attrs({ size: "default" })`
+  flex-shrink: 0;
+  border-radius: 50%;
+
+  &::after {
+    border-width: 2.5px;
+    border-style: solid;
+    border-color: #0a0a0a;
+    mix-blend-mode: normal;
+  }
+
+  .dark &::after {
+    border-color: rgba(250, 250, 250, 0.94);
+  }
+`
+
+export const HeaderWalletAvatarFallback = styled(AvatarFallback)``
+
 export const FeedMain = styled.main`
   position: relative;
   z-index: 0;
   margin-inline: auto;
   max-width: 48rem;
   padding: 0.75rem 0 4rem;
+
+  @media (max-width: 639.98px) {
+    padding-bottom: 4rem;
+  }
+
   @media (min-width: 640px) {
     max-width: 40rem;
     padding: 1rem 1.5rem 4rem;
+  }
+`
+
+/** Inline thread composer — hidden on mobile (use app detail to comment). */
+export const FeedInlineComposerDesktopOnly = styled.div`
+  @media (max-width: 639.98px) {
+    display: none;
   }
 `
 
@@ -249,13 +308,12 @@ export const FeedListingVoteCluster = styled.div`
   gap: 0.25rem;
   width: var(--feed-avatar-size);
   min-width: 0;
-  padding-right: 10px;
+  padding-right: 8px;
   pointer-events: auto;
 
   @media (min-width: 640px) {
     gap: 0.3125rem;
     padding-right: 18px;
-
   }
 `
 
@@ -296,6 +354,11 @@ export const CardTweetSection = styled.div`
   column-gap: var(--feed-avatar-gap);
   row-gap: 0.5rem;
   pointer-events: none;
+
+  @media (max-width: 639.98px) {
+    column-gap: 0.375rem;
+    row-gap: 0.375rem;
+  }
 `
 
 export const FeedTweetBody = styled.div`
@@ -328,6 +391,11 @@ export const FeedTweetPrompt = styled.p`
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+
+  @media (max-width: 639.98px) {
+    font-size: 0.75rem;
+    line-height: 1.2rem;
+  }
 
   @media (min-width: 640px) {
     font-size: 0.875rem;
@@ -365,6 +433,11 @@ export const FeedTweetAppName = styled.span`
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--foreground);
+
+  @media (max-width: 639.98px) {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
 
   @media (min-width: 640px) {
     font-size: 1rem;
@@ -503,6 +576,11 @@ export const FeedTweetTime = styled(TimeMeta)`
   line-height: 1rem;
   ${tabular};
 
+  @media (max-width: 639.98px) {
+    font-size: 0.6875rem;
+    line-height: 0.9375rem;
+  }
+
   @media (min-width: 640px) {
     font-size: 0.8125rem;
     line-height: 1.125rem;
@@ -593,14 +671,17 @@ export const FeedRemixButtonText = styled.span`
   letter-spacing: -0.02em;
   color: var(--muted-foreground);
 
+  @media (max-width: 639.98px) {
+    font-size: 0.75rem;
+  }
+
   @media (min-width: 640px) {
     font-size: 0.875rem;
   }
 `
 
-export const FeedRemixToggleButton = styled(Button).withConfig({
-  shouldForwardProp: (prop) => prop !== "$remixOpen",
-})<{ $remixOpen?: boolean }>`
+/** Opens create-app flow with this listing as the remix source. */
+export const FeedRemixButton = styled(Button)`
   ${feedGhostToolbarButtonCss};
 
   /* Softer than shared toolbar ghost hover — light gray instead of heavier foreground tint. */
@@ -611,30 +692,6 @@ export const FeedRemixToggleButton = styled(Button).withConfig({
   .dark &:hover:not(:disabled) {
     background: var(--muted) !important;
   }
-
-  ${(p) =>
-    p.$remixOpen &&
-    css`
-      background: color-mix(in oklab, oklch(0.65 0.15 250) 60%, transparent);
-      color: var(--foreground);
-      box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
-
-      ${FeedRemixButtonText} {
-        color: var(--foreground);
-      }
-
-      &:hover {
-        background: color-mix(in oklab, oklch(0.65 0.15 250) 80%, transparent) !important;
-      }
-
-      .dark & {
-        background: color-mix(in oklab, oklch(0.45 0.12 250) 35%, transparent);
-      }
-
-      .dark &:hover {
-        background: color-mix(in oklab, oklch(0.45 0.12 250) 45%, transparent) !important;
-      }
-    `}
 
   &:hover:not(:disabled) ${FeedRemixButtonText} {
     color: var(--foreground);
@@ -758,6 +815,11 @@ export const ScoreValue = styled.span<{ $tone: ScoreTone }>`
       color: inherit;
     `}
 
+  @media (max-width: 639.98px) {
+    min-width: 1.75rem;
+    font-size: 0.875rem;
+  }
+
   @media (min-width: 640px) {
     min-width: 2.4rem;
     font-size: 1.125rem;
@@ -790,225 +852,6 @@ export const ThreadInner = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-`
-
-export const RemixDialogContent = styled(DialogContent)`
-  display: flex;
-  max-height: min(85vh, 36rem);
-  flex-direction: column;
-  gap: 1rem;
-  overflow: hidden;
-  padding: 1.25rem;
-
-  @media (min-width: 640px) {
-    max-width: 32rem;
-  }
-`
-
-export const DialogTitleAccent = styled.span`
-  font-weight: 500;
-  color: var(--foreground);
-`
-
-export const RemixDialogList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: min(38vh, 18rem);
-  min-height: 0;
-  flex: 1 1 0%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 0.125rem;
-`
-
-export const RemixDialogRowLink = styled(Link)`
-  display: flex;
-  gap: 0.75rem;
-  border-radius: var(--radius-xl);
-  border: 1px solid rgb(0 0 0 / 8%);
-  background: color-mix(in oklab, var(--muted) 25%, transparent);
-  padding: 0.75rem;
-  text-decoration: none;
-  color: inherit;
-  transition: background-color 150ms ease;
-
-  &:hover {
-    background: color-mix(in oklab, var(--muted) 45%, transparent);
-  }
-
-  .dark & {
-    border-color: rgb(255 255 255 / 10%);
-  }
-
-  .dark &:hover {
-    background: color-mix(in oklab, var(--muted) 20%, transparent);
-  }
-`
-
-export const RemixDialogAvatar = styled(Avatar)`
-  width: 2.25rem;
-  height: 2.25rem;
-  flex-shrink: 0;
-  border-radius: var(--radius-lg);
-`
-
-export const RemixDialogAvatarFallback = styled(AvatarFallback)`
-  border-radius: var(--radius-lg);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 500;
-`
-
-export const RemixDialogRowBody = styled.div`
-  min-width: 0;
-  flex: 1 1 0%;
-`
-
-export const RemixDialogRowTitle = styled.p`
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.375;
-  color: var(--foreground);
-`
-
-export const RemixDialogRowMeta = styled.p`
-  margin: 0.125rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  color: var(--muted-foreground);
-`
-
-export const RemixDialogAuthor = styled.span`
-  font-weight: 500;
-  color: color-mix(in oklab, var(--foreground) 80%, transparent);
-`
-
-export const RemixDialogVotes = styled.p`
-  margin: 0.125rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  ${tabular};
-  color: var(--muted-foreground);
-`
-
-export const RemixComposerSection = styled.div`
-  flex-shrink: 0;
-  border-top: 1px solid rgb(0 0 0 / 6%);
-  padding-top: 1rem;
-
-  .dark & {
-    border-color: rgb(255 255 255 / 8%);
-  }
-`
-
-export const RemixContextChip = styled.div`
-  margin-bottom: 0.5rem;
-  display: inline-flex;
-  max-width: 100%;
-  align-items: center;
-  gap: 0.375rem;
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, oklch(0.75 0.12 230) 50%, transparent);
-  padding: 0.25rem 0.5rem;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.375;
-  color: oklch(0.25 0.08 230);
-
-  .dark & {
-    background: color-mix(in oklab, oklch(0.35 0.08 230) 50%, transparent);
-    color: oklch(0.95 0.04 230);
-  }
-`
-
-export const RemixContextIcon = styled.span`
-  display: inline-flex;
-  flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-  opacity: 0.85;
-  color: oklch(0.45 0.12 230);
-
-  .dark & {
-    color: oklch(0.78 0.1 230);
-  }
-
-  & > svg {
-    width: 100%;
-    height: 100%;
-  }
-`
-
-export const RemixContextName = styled.span`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`
-
-export const RemixComposerRow = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-`
-
-export const RemixComposerTextarea = styled.textarea`
-  max-height: 7rem;
-  min-height: 44px;
-  flex: 1 1 0%;
-  resize: none;
-  border-radius: var(--radius-lg);
-  border: 0;
-  background: rgb(0 0 0 / 3%);
-  padding: 0.5rem 0.625rem;
-  font-size: 13px;
-  line-height: 1.375;
-  color: var(--foreground);
-  outline: none;
-  box-shadow: none;
-
-  &::placeholder {
-    color: color-mix(in oklab, var(--muted-foreground) 80%, transparent);
-  }
-
-  &:focus-visible {
-    background: rgb(0 0 0 / 4%);
-  }
-
-  .dark & {
-    background: rgb(255 255 255 / 6%);
-  }
-
-  .dark &:focus-visible {
-    background: rgb(255 255 255 / 8%);
-  }
-`
-
-export const RemixSendIconButton = styled(Button)`
-  width: 2.25rem;
-  height: 2.25rem;
-  flex-shrink: 0;
-  border-radius: 9999px;
-  background: var(--muted);
-  color: var(--muted-foreground);
-
-  & svg {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  &:hover {
-    background: color-mix(in oklab, var(--muted-foreground) 25%, transparent);
-    color: var(--background);
-  }
-
-  .dark &:hover {
-    background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
-  }
 `
 
 export const Page = styled.div`

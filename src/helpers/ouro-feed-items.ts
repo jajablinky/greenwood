@@ -64,6 +64,16 @@ export function remixDescription(parentSlug: string): string {
   return `remix_of:${parentSlug}`
 }
 
+/** Parses `remix_of:<slug>` from a workspace description (or feed `detail` carrying the same string). */
+export function remixParentSlugFromWorkspaceDescription(
+  description: string | null | undefined,
+): string | null {
+  const d = description?.trim()
+  if (!d?.startsWith("remix_of:")) return null
+  const slug = d.slice("remix_of:".length).trim()
+  return slug || null
+}
+
 export function remixTeamLeadPrompt(parentTitle: string, userPrompt: string): string {
   return `Remix of "${parentTitle}": ${userPrompt}`
 }
