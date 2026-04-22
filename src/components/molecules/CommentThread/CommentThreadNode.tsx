@@ -1,19 +1,24 @@
 import type { FormEvent } from "react"
+import { useCallback, useState } from "react"
 
-import { ArrowUpIcon } from "lucide-react"
+import { ArrowUpIcon, Globe, ShuffleIcon } from "assets/icons"
 
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
 import { Button } from "components/atoms/Button"
+import { ProfileHoverCard } from "components/molecules/ProfileHoverCard/ProfileHoverCard"
 import type { FeedComment } from "helpers/activity-feed-mock-data"
 import type { GlobalFeedItem } from "helpers/activity-feed-mock-data"
 import {
   commentDisplayScore,
+  countDescendantComments,
   scoreToneForComment,
   type CommentTreeNode,
 } from "helpers/comment-tree"
 import { formatCount } from "helpers/format-count"
 import { formatShortTimeAgo } from "helpers/format-short-time-ago"
-import { isRemixCommentBody } from "helpers/remix-comment"
+import { buildMiniAppPreviewHtml } from "helpers/feed-mini-app-previews"
+import { profilePathForAuthor } from "helpers/profile-path"
+import { parseRemixComment, slicePrompt } from "helpers/remix-comment"
 
 import * as S from "./styles"
 
@@ -50,8 +55,8 @@ type FeedCtx = {
     direction: "up" | "down",
   ) => void
   submitFeedReply: (e: FormEvent, postId: string) => void
-  setRemixText: (v: string | ((s: string) => string)) => void
-  setRemixListPostId: (v: string | null | ((s: string | null) => string | null)) => void
+  /** Opens create-app flow with this feed post as the remix source. */
+  onOpenRemixCreate: () => void
 }
 
 type DetailProps = {
@@ -72,10 +77,24 @@ export type CommentThreadNodeProps = DetailProps | FeedProps
 
 export function CommentThreadNode(props: CommentThreadNodeProps) {
   const { node, mode } = props
+  const [threadHidden, setThreadHidden] = useState(false)
+  const replyCount = countDescendantComments(node.children)
+  const hasReplies = node.children.length > 0
   const vv = node.viewerVote
   const display = commentDisplayScore(node as FeedComment)
   const tone = scoreToneForComment(display)
-  const isRemix = isRemixCommentBody(node.body)
+  const remixParsed = parseRemixComment(node.body)
+  const isRemix = remixParsed.isRemix
+
+  const lastDirectChild =
+    node.children.length > 0
+      ? node.children[node.children.length - 1]
+      : undefined
+  /** Tall remix leaf: shorten parent connector so the line doesn’t run through the whole preview block. */
+  const threadLineShortTail =
+    lastDirectChild !== undefined &&
+    lastDirectChild.children.length === 0 &&
+    parseRemixComment(lastDirectChild.body).isRemix
 
   const showReplyForm =
     mode === "detail"
@@ -134,89 +153,177 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
   const studioHref =
     mode === "feed" ? props.feed.studioHref : props.detailStudioHref
 
+  const remixDisplayName =
+    isRemix && remixParsed.forkAppName ? remixParsed.forkAppName : appName
+  const remixIframeSrcDoc =
+    isRemix && remixParsed.forkAppName
+      ? buildMiniAppPreviewHtml(`remix-${node.id}`, remixParsed.forkAppName)
+      : previewHtml
+  const remixPromptExcerpt =
+    isRemix ? slicePrompt(remixParsed.promptSlice, 160) : ""
+
   function onRemixSecondary() {
     if (mode === "feed") {
-      props.feed.setRemixText("")
-      props.feed.setRemixListPostId(props.feed.postId)
+      props.feed.onOpenRemixCreate()
     } else {
       props.detail.onRemixFromComment?.()
     }
   }
 
+  const toggleThreadHidden = useCallback(() => {
+    setThreadHidden((h) => !h)
+  }, [])
+
+  const hideCommentVotes =
+    mode === "detail" && props.detail.ouroSlug !== null
+
   const inner = (
     <>
-      <S.CommentMiniVoteCol>
-        <S.CommentMiniVoteBtn
-          variant="vote"
-          voteDirection="up"
-          aria-label="Upvote comment"
-          aria-pressed={vv === "up"}
-          onClick={onVoteUp}
-        >
-          <VoteBlockArrowUp filled={vv === "up"} />
-        </S.CommentMiniVoteBtn>
-        <S.CommentMiniVoteScore $tone={tone}>{formatCount(display)}</S.CommentMiniVoteScore>
-        <S.CommentMiniVoteBtn
-          variant="vote"
-          voteDirection="down"
-          aria-label="Downvote comment"
-          aria-pressed={vv === "down"}
-          onClick={onVoteDown}
-        >
-          <VoteBlockArrowDown filled={vv === "down"} />
-        </S.CommentMiniVoteBtn>
-      </S.CommentMiniVoteCol>
+      {hideCommentVotes ? null : (
+        <S.CommentMiniVoteCol>
+          <S.CommentMiniVoteBtn
+            variant="vote"
+            voteDirection="up"
+            aria-label="Upvote comment"
+            aria-pressed={vv === "up"}
+            onClick={onVoteUp}
+          >
+            <VoteBlockArrowUp filled={vv === "up"} />
+          </S.CommentMiniVoteBtn>
+          <S.CommentMiniVoteScore $tone={tone}>
+            {formatCount(display)}
+          </S.CommentMiniVoteScore>
+          <S.CommentMiniVoteBtn
+            variant="vote"
+            voteDirection="down"
+            aria-label="Downvote comment"
+            aria-pressed={vv === "down"}
+            onClick={onVoteDown}
+          >
+            <VoteBlockArrowDown filled={vv === "down"} />
+          </S.CommentMiniVoteBtn>
+        </S.CommentMiniVoteCol>
+      )}
       <S.CommentMainRow>
-        <S.CommentAvatar>
-          <S.CommentAvatarFallback>{node.authorInitials}</S.CommentAvatarFallback>
-        </S.CommentAvatar>
+        <ProfileHoverCard handle={node.author}>
+          <S.CommentAvatarLink
+            to={profilePathForAuthor(node.author)}
+            aria-label={`Open ${node.author} profile`}
+            title={node.author}
+          >
+            <S.CommentAvatar>
+              <S.CommentAvatarFallback>{node.authorInitials}</S.CommentAvatarFallback>
+            </S.CommentAvatar>
+          </S.CommentAvatarLink>
+        </ProfileHoverCard>
         <S.CommentBlock>
-          <S.CommentMeta>
-            <S.CommentAuthor>{node.author}</S.CommentAuthor>
-            <S.CommentKindBadge $kind={isRemix ? "remix" : "comment"}>
-              {isRemix ? "Remix" : "Comment"}
-            </S.CommentKindBadge>
-            <S.CommentMetaDot aria-hidden />
-            <time>{formatShortTimeAgo(node.createdAt)}</time>
-          </S.CommentMeta>
-          <S.CommentBody>{node.body}</S.CommentBody>
+          {isRemix ? (
+            <S.CommentRemixMetaBar>
+              <S.CommentMetaLead>
+                <S.CommentMeta>
+                  <ProfileHoverCard handle={node.author}>
+                    <S.CommentAuthor
+                      to={profilePathForAuthor(node.author)}
+                      aria-label={`Open ${node.author} profile`}
+                      title={node.author}
+                    >
+                      {node.author}
+                    </S.CommentAuthor>
+                  </ProfileHoverCard>
+                  <S.CommentKindBadge $kind="remix">Remix</S.CommentKindBadge>
+                  <S.CommentMetaDot aria-hidden />
+                  <time>{formatShortTimeAgo(node.createdAt)}</time>
+                </S.CommentMeta>
+              </S.CommentMetaLead>
+              <S.RemixActionsRow>
+                <S.RemixViewAppLink
+                  to={studioHref}
+                  title={`Open ${remixDisplayName} in studio`}
+                  aria-label={`View app in studio — ${remixDisplayName}`}
+                >
+                  <Globe width={16} height={16} strokeWidth={2} aria-hidden />
+                </S.RemixViewAppLink>
+                <S.RemixThreadIconButton
+                  onClick={onRemixSecondary}
+                  title="Remix"
+                  aria-label={`Remix ${remixDisplayName}`}
+                >
+                  <ShuffleIcon width={16} height={16} strokeWidth={2} aria-hidden />
+                </S.RemixThreadIconButton>
+              </S.RemixActionsRow>
+            </S.CommentRemixMetaBar>
+          ) : (
+            <S.CommentMeta>
+              <ProfileHoverCard handle={node.author}>
+                <S.CommentAuthor
+                  to={profilePathForAuthor(node.author)}
+                  aria-label={`Open ${node.author} profile`}
+                  title={node.author}
+                >
+                  {node.author}
+                </S.CommentAuthor>
+              </ProfileHoverCard>
+              <S.CommentKindBadge $kind="comment">Comment</S.CommentKindBadge>
+              <S.CommentMetaDot aria-hidden />
+              <time>{formatShortTimeAgo(node.createdAt)}</time>
+            </S.CommentMeta>
+          )}
+          {!isRemix ? <S.CommentBody>{node.body}</S.CommentBody> : null}
           {isRemix ? (
             <>
+              <S.RemixForkSummary>
+                <S.RemixForkAppName>{remixDisplayName}</S.RemixForkAppName>
+                <S.RemixForkPrompt>{remixPromptExcerpt}</S.RemixForkPrompt>
+              </S.RemixForkSummary>
               <S.RemixStudioPreviewLink
                 to={studioHref}
-                aria-label={`View ${appName} in studio`}
-                title={`View ${appName} in studio`}
+                aria-label={`Preview ${remixDisplayName} (studio)`}
+                title={`Preview ${remixDisplayName} (studio)`}
               >
                 <S.RemixPreviewIframe
-                  srcDoc={previewHtml}
+                  srcDoc={remixIframeSrcDoc}
                   sandbox="allow-scripts"
                   title=""
                   style={{
                     width: 400,
                     height: 225,
-                    transform: "scale(0.2)",
+                    transform: "scale(0.25)",
                     transformOrigin: "0 0",
                   }}
                 />
               </S.RemixStudioPreviewLink>
-              <S.RemixActionsRow>
-                <S.RemixViewAppLink to={studioHref}>View app</S.RemixViewAppLink>
-                <S.RemixOutlineButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onRemixSecondary}
-                >
-                  Remix
-                </S.RemixOutlineButton>
-              </S.RemixActionsRow>
             </>
           ) : null}
           {(mode === "detail" && !props.detail.ouroSlug) || mode === "feed" ? (
             <S.CommentReplyRow>
-              <Button type="button" size="sm" onClick={onReplyClick}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={onReplyClick}
+              >
                 Reply
               </Button>
+              {hasReplies ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  aria-expanded={!threadHidden}
+                  aria-controls={
+                    threadHidden
+                      ? undefined
+                      : mode === "feed"
+                        ? `feed-replies-${props.feed.postId}-${node.id}`
+                        : `detail-replies-${node.id}`
+                  }
+                  onClick={toggleThreadHidden}
+                >
+                  {threadHidden
+                    ? `Show thread (${replyCount})`
+                    : "Hide thread"}
+                </Button>
+              ) : null}
             </S.CommentReplyRow>
           ) : null}
         </S.CommentBlock>
@@ -233,10 +340,10 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
           <label className="sr-only" htmlFor={`reply-${node.id}`}>
             Write a reply
           </label>
-          <S.InlineComposerShell>
+          <S.InlineComposerShell $quietUntilFocus>
             <S.InlineComposerTextarea
               id={`reply-${node.id}`}
-              rows={3}
+              rows={1}
               placeholder="Write a reply…"
               value={props.detail.replyDraft}
               onChange={(e) => props.detail.setReplyDraft(e.target.value)}
@@ -247,7 +354,6 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
               aria-label="Post reply"
               title="Post reply"
             >
-              <S.InlineComposerFabLabel aria-hidden>Reply</S.InlineComposerFabLabel>
               <S.InlineComposerFabIcon>
                 <ArrowUpIcon strokeWidth={2.25} aria-hidden />
               </S.InlineComposerFabIcon>
@@ -265,10 +371,10 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
         >
           Write a reply
         </label>
-        <S.InlineComposerShell>
+        <S.InlineComposerShell $quietUntilFocus>
           <S.InlineComposerTextarea
             id={`feed-reply-${props.feed.postId}-${node.id}`}
-            rows={3}
+            rows={1}
             placeholder="Write a reply…"
             value={props.feed.feedReplyDraft}
             onChange={(e) => props.feed.setFeedReplyDraft(e.target.value)}
@@ -279,7 +385,6 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
             aria-label="Post reply"
             title="Post reply"
           >
-            <S.InlineComposerFabLabel aria-hidden>Reply</S.InlineComposerFabLabel>
             <S.InlineComposerFabIcon>
               <ArrowUpIcon strokeWidth={2.25} aria-hidden />
             </S.InlineComposerFabIcon>
@@ -294,35 +399,51 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
       : {}
 
   return (
-    <S.CommentThreadRootLi {...liProps}>
-      {mode === "feed" ? (
-        <S.ThreadRowInner $highlighted={highlighted}>{inner}</S.ThreadRowInner>
-      ) : (
-        <S.CommentStatRow>{inner}</S.CommentStatRow>
-      )}
-      {replyForm}
-      {node.children.length > 0 ? (
-        <S.CommentThreadNest>
-          {node.children.map((ch) => (
-            <CommentThreadNode
-              key={ch.id}
-              {...(mode === "detail"
-                ? ({
-                    mode: "detail",
-                    node: ch,
-                    detail: props.detail,
-                    detailItem: props.detailItem,
-                    detailStudioHref: props.detailStudioHref,
-                  } satisfies DetailProps)
-                : ({
-                    mode: "feed",
-                    node: ch,
-                    feed: props.feed,
-                  } satisfies FeedProps))}
-            />
-          ))}
-        </S.CommentThreadNest>
-      ) : null}
+    <S.CommentThreadRootLi
+      $detailChatFlow={hideCommentVotes}
+      {...liProps}
+    >
+      <S.CommentThreadBranch
+        data-has-replies={
+          hasReplies && !threadHidden ? "" : undefined
+        }
+        data-thread-short-tail={
+          hasReplies && !threadHidden && threadLineShortTail ? "" : undefined
+        }
+      >
+        <S.CommentStatRow $highlighted={mode === "feed" ? highlighted : false}>
+          {inner}
+        </S.CommentStatRow>
+        {replyForm}
+        {hasReplies && !threadHidden ? (
+          <S.CommentThreadNest
+            id={
+              mode === "feed"
+                ? `feed-replies-${props.feed.postId}-${node.id}`
+                : `detail-replies-${node.id}`
+            }
+          >
+            {node.children.map((ch) => (
+              <CommentThreadNode
+                key={ch.id}
+                {...(mode === "detail"
+                  ? ({
+                      mode: "detail",
+                      node: ch,
+                      detail: props.detail,
+                      detailItem: props.detailItem,
+                      detailStudioHref: props.detailStudioHref,
+                    } satisfies DetailProps)
+                  : ({
+                      mode: "feed",
+                      node: ch,
+                      feed: props.feed,
+                    } satisfies FeedProps))}
+              />
+            ))}
+          </S.CommentThreadNest>
+        ) : null}
+      </S.CommentThreadBranch>
     </S.CommentThreadRootLi>
   )
 }

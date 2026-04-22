@@ -9,10 +9,26 @@ import { useArweaveProvider } from "providers/ArweaveProvider"
 
 import * as C from "./styles"
 
+type ConnectWalletButtonProps = {
+  className?: string
+  /** Same ghost text button as feed header “Create” (no wallet pill chrome). */
+  feedHeader?: boolean
+}
+
+function pillClass(
+  feedHeader: boolean | undefined,
+  c: string,
+): string | undefined {
+  return feedHeader ? undefined : c
+}
+
 /**
- * Matches feed action controls: pill, hairline border, compact type (see Activity feed).
+ * Default: pill + hairline border (compact). Use `feedHeader` next to header Create.
  */
-export function ConnectWalletButton({ className }: { className?: string }) {
+export function ConnectWalletButton({
+  className,
+  feedHeader,
+}: ConnectWalletButtonProps) {
   const { walletAddress, isConnecting, walletUnavailable, connect, disconnect } =
     useArweaveProvider()
   const mounted = useSyncExternalStore(
@@ -36,7 +52,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
         variant="ghost"
         size="sm"
         disabled
-        className={clsx(C.pillChecking, className)}
+        className={clsx(pillClass(feedHeader, C.pillChecking), className)}
         aria-label="Checking wallet"
       >
         Connect
@@ -52,7 +68,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
         size="sm"
         disabled
         title="Install ArConnect or Wander to connect"
-        className={clsx(C.pillMissing, className)}
+        className={clsx(pillClass(feedHeader, C.pillMissing), className)}
       >
         Connect
       </Button>
@@ -69,7 +85,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
         title={`${walletAddress} — click to disconnect`}
         aria-label={`Connected as ${walletAddress}. Click to disconnect.`}
         onClick={onDisconnect}
-        className={clsx(C.pillConnected, className)}
+        className={clsx(pillClass(feedHeader, C.pillConnected), className)}
       >
         {abbreviateWalletAddress(walletAddress)}
       </Button>
@@ -85,7 +101,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
       aria-busy={isConnecting}
       title="Connect Arweave wallet"
       onClick={onConnect}
-      className={clsx(C.pill, className)}
+      className={clsx(pillClass(feedHeader, C.pill), className)}
     >
       {isConnecting ? "…" : "Connect"}
     </Button>

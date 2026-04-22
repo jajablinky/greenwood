@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react"
 import * as React from "react"
 
 import * as S from "./styles"
@@ -45,7 +44,7 @@ export function StatRow({
 }
 
 type StatRowIconLabelProps = {
-  icon: LucideIcon
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
   children: React.ReactNode
   className?: string
 }

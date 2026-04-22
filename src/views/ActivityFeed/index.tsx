@@ -2,27 +2,26 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type FormEvent,
 } from "react"
-import { ArrowUpIcon, MessageSquareIcon, MousePointer2Icon, ShuffleIcon } from "lucide-react"
-import { Link } from "react-router-dom"
+import {
+  ArrowUpIcon,
+  Globe,
+  MessageSquareIcon,
+  Plus,
+  Send,
+  ShuffleIcon,
+} from "assets/icons"
+import { Link, useSearchParams } from "react-router-dom"
 
-import { ConnectWalletButton } from "components/molecules/ConnectWalletButton"
-import { FeedPriceCaption } from "components/atoms/FeedPriceCaption"
 import {
   ProjectStatusPill,
   type ProjectRunStatus,
 } from "components/atoms/ProjectStatusPill"
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
-import {
-  Dialog,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "components/atoms/Dialog"
 import { CreateProjectDialog } from "components/molecules/CreateProjectDialog"
+import { ProfileHoverCard } from "components/molecules/ProfileHoverCard/ProfileHoverCard"
 import { activityDetailPath, studioPathForProtocol } from "helpers/app-route-name"
 import {
   INITIAL_ACTIVITY_FEED,
@@ -35,35 +34,33 @@ import {
   FEED_COMMENT_TOP_N,
   sortCommentRootsByHot,
 } from "helpers/comment-tree"
+import { profilePathForAuthor } from "helpers/profile-path"
 import { formatCount } from "helpers/format-count"
-import { abbreviateWalletAddress } from "helpers/abbrev-wallet"
 import { formatShortTimeAgo } from "helpers/format-short-time-ago"
+import { APP_MOCK_ONLY } from "helpers/app-mode"
 import { workspaceSlugFromFeedId } from "helpers/ouro-feed-items"
+import { postMessageToGeneralChannel } from "helpers/ouroboros/api"
+import { useArweaveProvider } from "providers/ArweaveProvider"
 import { useProjects } from "providers/ProjectsProvider"
+import { useToaster } from "providers/ToasterProvider"
 
 import {
   CommentThreadNode,
   type FeedReplyTarget,
 } from "components/molecules/CommentThread"
 import {
-  CommentComposerForm as CommentForm,
-  CommentComposerSubmit as CommentSubmitButton,
-  CommentComposerTextarea as CommentTextarea,
+  CommentsStatRowList,
   OpenDetailCommentsLink,
   ViewMoreCommentsButton,
   ViewMoreCommentsRow,
 } from "components/molecules/CommentThread/styles"
+import * as DetailCommentS from "views/AppDetail/styles"
+import { FeedPostOverflowMenu } from "./FeedPostOverflowMenu"
 import * as S from "./styles"
 
 type ViewerVote = "up" | "down" | null
 
-/** Feed row title: keep MC visible by capping visible characters (full string in title/aria). */
-const FEED_CARD_TITLE_DISPLAY_MAX = 12
-
-function abbreviateFeedCardTitle(title: string): string {
-  if (title.length <= FEED_CARD_TITLE_DISPLAY_MAX) return title
-  return `${title.slice(0, FEED_CARD_TITLE_DISPLAY_MAX)}…`
-}
+type FeedSort = "popular" | "new"
 
 function newCommentId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -85,19 +82,22 @@ function scoreTone(score: number): "positive" | "negative" | "neutral" {
 
 export function ActivityFeedPage() {
   const { ouroFeedItems, getStatusForSlug } = useProjects()
+  const { walletAddress, connect } = useArweaveProvider()
+  const { push } = useToaster()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
+  /** When set, create-app dialog opens with this listing as the remix source. */
+  const [remixCreateFeedId, setRemixCreateFeedId] = useState<string | null>(null)
   const [votes, setVotes] = useState<Record<string, ViewerVote>>({})
   const [commentsByPost, setCommentsByPost] = useState<
     Record<string, FeedComment[]>
   >(() =>
     Object.fromEntries(INITIAL_ACTIVITY_FEED.map((i) => [i.id, i.initialComments]))
   )
-  const [openThread, setOpenThread] = useState<Record<string, boolean>>({})
   const [draftByPost, setDraftByPost] = useState<Record<string, string>>({})
-  const [remixText, setRemixText] = useState("")
-  /** Feed row remix control opens a dialog: fork list + compose. */
-  const [remixListPostId, setRemixListPostId] = useState<string | null>(null)
-  const remixInputRef = useRef<HTMLTextAreaElement>(null)
+  const [composerBusyByPost, setComposerBusyByPost] = useState<
+    Record<string, boolean>
+  >({})
   /** Scroll + ring a specific comment (e.g. after remix, or “Open in thread”). */
   const [highlightComment, setHighlightComment] = useState<{
     postId: string
@@ -110,16 +110,33 @@ export function ActivityFeedPage() {
   const [showAllFeedComments, setShowAllFeedComments] = useState<
     Record<string, boolean>
   >({})
+  /** Inline thread list hidden until the comments control is used (or a comment is posted). */
+  const [feedCommentsRevealed, setFeedCommentsRevealed] = useState<
+    Record<string, boolean>
+  >({})
+  const [feedSort, setFeedSort] = useState<FeedSort>("popular")
+
+  useEffect(() => {
+    if (searchParams.get("action") !== "create") {
+      return
+    }
+    const remixParam = searchParams.get("remix")
+    const t = window.setTimeout(() => {
+      setRemixCreateFeedId(remixParam)
+      setCreateProjectOpen(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete("action")
+      next.delete("remix")
+      setSearchParams(next, { replace: true })
+    }, 0)
+    return () => window.clearTimeout(t)
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     if (!highlightComment) {
       return
     }
     const { postId, commentId } = highlightComment
-    if (openThread[postId] !== true) {
-      const drop = window.setTimeout(() => setHighlightComment(null), 0)
-      return () => window.clearTimeout(drop)
-    }
     const elId = `feed-comment-${postId}-${commentId}`
     const tScroll = window.setTimeout(() => {
       document.getElementById(elId)?.scrollIntoView({
@@ -134,35 +151,44 @@ export function ActivityFeedPage() {
       window.clearTimeout(tScroll)
       window.clearTimeout(tClear)
     }
-  }, [highlightComment, openThread])
-
-  useEffect(() => {
-    if (!remixListPostId) {
-      return
-    }
-    const t = window.setTimeout(() => remixInputRef.current?.focus(), 0)
-    return () => window.clearTimeout(t)
-  }, [remixListPostId])
+  }, [highlightComment])
 
   const sortedFeed = useMemo(() => {
     const list = [...ouroFeedItems, ...INITIAL_ACTIVITY_FEED]
     const viewerDelta = (id: string) =>
       votes[id] === "up" ? 1 : votes[id] === "down" ? -1 : 0
 
+    if (feedSort === "new") {
+      list.sort(
+        (a, b) =>
+          b.createdAt - a.createdAt || a.id.localeCompare(b.id),
+      )
+      return list
+    }
+
     list.sort(
       (a, b) =>
-        hotScore(b, viewerDelta(b.id)) - hotScore(a, viewerDelta(a.id))
+        hotScore(b, viewerDelta(b.id)) - hotScore(a, viewerDelta(a.id)),
     )
     return list
-  }, [votes, ouroFeedItems])
+  }, [votes, ouroFeedItems, feedSort])
 
-  const remixListDialogItem = useMemo(
-    () =>
-      remixListPostId
-        ? (sortedFeed.find((i) => i.id === remixListPostId) ?? null)
-        : null,
-    [remixListPostId, sortedFeed]
-  )
+  const remixSourceForDialog = useMemo(() => {
+    if (!remixCreateFeedId) {
+      return null
+    }
+    const row = sortedFeed.find((i) => i.id === remixCreateFeedId) ?? null
+    if (!row) {
+      return null
+    }
+    return {
+      id: row.id,
+      appName: row.appName,
+      appSlug: row.appSlug,
+      previewHtml: row.previewHtml,
+      cardTitle: row.cardTitle,
+    }
+  }, [remixCreateFeedId, sortedFeed])
 
   const toggleVote = useCallback(
     (postId: string, direction: "up" | "down") => {
@@ -186,12 +212,36 @@ export function ActivityFeedPage() {
   )
 
   const submitComment = useCallback(
-    (e: FormEvent, postId: string) => {
+    async (e: FormEvent, postId: string, ouroSlug: string | null) => {
       e.preventDefault()
       const raw = (draftByPost[postId] ?? "").trim()
       if (!raw) {
         return
       }
+
+      if (ouroSlug && !APP_MOCK_ONLY) {
+        if (!walletAddress) {
+          await connect()
+          push({ title: "Connect wallet to continue", variant: "warning" })
+          return
+        }
+        setComposerBusyByPost((prev) => ({ ...prev, [postId]: true }))
+        try {
+          await postMessageToGeneralChannel(ouroSlug, raw)
+          setDraftByPost((prev) => ({ ...prev, [postId]: "" }))
+          setFeedCommentsRevealed((prev) => ({ ...prev, [postId]: true }))
+        } catch (err) {
+          push({
+            variant: "warning",
+            title: "Message failed",
+            body: err instanceof Error ? err.message : String(err),
+          })
+        } finally {
+          setComposerBusyByPost((prev) => ({ ...prev, [postId]: false }))
+        }
+        return
+      }
+
       const row: FeedComment = {
         id: newCommentId(),
         parentId: null,
@@ -207,37 +257,9 @@ export function ActivityFeedPage() {
         [postId]: [...(prev[postId] ?? []), row],
       }))
       setDraftByPost((prev) => ({ ...prev, [postId]: "" }))
-      setOpenThread((prev) => ({ ...prev, [postId]: true }))
+      setFeedCommentsRevealed((prev) => ({ ...prev, [postId]: true }))
     },
-    [draftByPost]
-  )
-
-  const submitRemixIdea = useCallback(
-    (postId: string) => {
-      const raw = remixText.trim()
-      if (!raw) {
-        return
-      }
-      const row: FeedComment = {
-        id: newCommentId(),
-        parentId: null,
-        author: "you",
-        authorInitials: "ME",
-        body: `Remix: ${raw}`,
-        createdAt: Date.now(),
-        score: 0,
-        viewerVote: null,
-      }
-      setCommentsByPost((prev) => ({
-        ...prev,
-        [postId]: [...(prev[postId] ?? []), row],
-      }))
-      setRemixListPostId(null)
-      setRemixText("")
-      setOpenThread((prev) => ({ ...prev, [postId]: true }))
-      setHighlightComment({ postId, commentId: row.id })
-    },
-    [remixText]
+    [connect, draftByPost, push, walletAddress]
   )
 
   const toggleFeedCommentVote = useCallback(
@@ -295,21 +317,56 @@ export function ActivityFeedPage() {
             <S.HeaderBrandLink to="/">PermawebOS</S.HeaderBrandLink>
           </S.HeaderBrandWrap>
           <S.HeaderActions>
-            <S.HeaderTextButton
-              type="button"
-              onClick={() => setCreateProjectOpen(true)}
-            >
-              New project
-            </S.HeaderTextButton>
-            <ConnectWalletButton />
+            <S.HeaderConnectWalletButton />
           </S.HeaderActions>
         </S.HeaderInner>
+        <S.FeedSortBar role="tablist" aria-label="Sort feed">
+          <S.FeedSortPill
+            type="button"
+            role="tab"
+            aria-selected={feedSort === "popular"}
+            $active={feedSort === "popular"}
+            onClick={() => setFeedSort("popular")}
+          >
+            Popular
+          </S.FeedSortPill>
+          <S.FeedSortPill
+            type="button"
+            role="tab"
+            aria-selected={feedSort === "new"}
+            $active={feedSort === "new"}
+            onClick={() => setFeedSort("new")}
+          >
+            New
+          </S.FeedSortPill>
+        </S.FeedSortBar>
       </S.StickyHeader>
 
       <CreateProjectDialog
         open={createProjectOpen}
-        onOpenChange={setCreateProjectOpen}
+        onOpenChange={(open) => {
+          setCreateProjectOpen(open)
+          if (!open) {
+            setRemixCreateFeedId(null)
+          }
+        }}
+        remixSource={remixSourceForDialog}
       />
+
+      <S.FeedCreateFab
+        type="button"
+        variant="accent"
+        size="lg"
+        aria-label="Create app"
+        title="Create app"
+        onClick={() => {
+          setRemixCreateFeedId(null)
+          setCreateProjectOpen(true)
+        }}
+      >
+        <Plus strokeWidth={2.25} aria-hidden />
+        <span>Create</span>
+      </S.FeedCreateFab>
 
       <S.FeedMain>
         <S.FeedList>
@@ -317,7 +374,6 @@ export function ActivityFeedPage() {
             const v = votes[item.id] ?? null
             const score = displayScore(item)
             const comments = commentsByPost[item.id] ?? []
-            const open = openThread[item.id] === true
             const studioHref = studioPathForProtocol(item.appName)
             const detailHref = activityDetailPath(item.id)
             const remixListCount = mockRemixListForItem(item).length
@@ -326,63 +382,43 @@ export function ActivityFeedPage() {
             const ouroStatus: ProjectRunStatus | undefined = ouroSlug
               ? getStatusForSlug(ouroSlug) ?? "idle"
               : undefined
+            const feedComposerBusy = composerBusyByPost[item.id] === true
+            const commentsThreadVisible = feedCommentsRevealed[item.id] === true
+            const feedComposerContextLabel =
+              item.cardTitle && item.cardTitle !== item.appName
+                ? `${item.appName} — ${item.cardTitle}`
+                : cardTitle
+            const feedComposerPlaceholder = ouroSlug
+              ? `What would you like ${cardTitle} to look like?`
+              : "Add a comment…"
 
             return (
               <li key={item.id}>
                 <S.FeedItemArticle>
-                  <S.FeedCard
+                  <S.FeedListingSurface
                     style={
                       {
                         "--feed-hover-accent": item.previewHoverAccent,
                       } as React.CSSProperties
                     }
-                    aria-label={`${item.appName} listing`}
                   >
+                  <S.FeedCard aria-label={`${item.appName} listing`}>
                     <S.CardOverlayLink
                       to={detailHref}
                       aria-label={`Open ${item.appName} detail page`}
                       title={`Open ${item.appName} detail page`}
                     />
-                    <S.CardPreviewFrame>
-                      <S.CardPreviewIframe
-                        title={`${item.appName} preview`}
-                        srcDoc={item.previewHtml}
-                        sandbox="allow-scripts"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    </S.CardPreviewFrame>
-
-                    <S.CardMetaSection>
-                      <S.CardMetaRow>
-                        <S.CardMetaLeft>
-                          <S.VoteGroup role="group" aria-label="Vote on this listing">
-                            <S.VoteIconBtn
-                              variant="vote"
-                              voteDirection="up"
-                              aria-label="Upvote"
-                              aria-pressed={v === "up"}
-                              onClick={() => toggleVote(item.id, "up")}
-                            >
-                              <S.VoteArrowWrap>
-                                <VoteBlockArrowUp filled={v === "up"} />
-                              </S.VoteArrowWrap>
-                            </S.VoteIconBtn>
-                            <S.ScoreValue $tone={scoreTone(score)} title="Score">
-                              {formatCount(score)}
-                            </S.ScoreValue>
-                            <S.VoteIconBtn
-                              variant="vote"
-                              voteDirection="down"
-                              aria-label="Downvote"
-                              aria-pressed={v === "down"}
-                              onClick={() => toggleVote(item.id, "down")}
-                            >
-                              <S.VoteArrowWrap>
-                                <VoteBlockArrowDown filled={v === "down"} />
-                              </S.VoteArrowWrap>
-                            </S.VoteIconBtn>
-                          </S.VoteGroup>
+                    <S.CardTweetSection>
+                      <S.FeedTweetBody>
+                        <S.FeedTweetAppRow>
+                          <S.FeedTweetAppLeading>
+                      <ProfileHoverCard handle={item.builder}>
+                        <S.BuilderAvatarLink
+                          to={profilePathForAuthor(item.builder)}
+                          aria-label={`Open ${item.builder} profile`}
+                          title={item.builder}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <S.BuilderAvatar
                             aria-label={`Builder wallet ${item.builderWallet}`}
                             title={item.builderWallet}
@@ -391,44 +427,79 @@ export function ActivityFeedPage() {
                               {item.builderInitials}
                             </S.BuilderAvatarFallback>
                           </S.BuilderAvatar>
-                          <S.CardTextCol>
-                            <S.CardTitleRow>
-                              <S.CardTitleHeading>
-                                <S.CardTitleText title={cardTitle}>
-                                  {abbreviateFeedCardTitle(cardTitle)}
-                                </S.CardTitleText>
-                              </S.CardTitleHeading>
-                              {ouroStatus ? (
-                                <ProjectStatusPill status={ouroStatus} />
-                              ) : null}
-                              <FeedPriceCaption
-                                variant="inline"
-                                priceChangePct={item.priceChangePct}
-                                marketCapLabel={item.marketCapLabel}
-                              />
-                            </S.CardTitleRow>
-
-                            <S.CardSubMetaRow>
-                              <S.WalletAbbrev title={item.builderWallet}>
-                                {abbreviateWalletAddress(item.builderWallet)}
-                              </S.WalletAbbrev>
-                              <S.DotSep aria-hidden>·</S.DotSep>
-                              <S.TimeMeta
+                        </S.BuilderAvatarLink>
+                      </ProfileHoverCard>
+                            <S.FeedTweetAppName>{item.appName}</S.FeedTweetAppName>
+                            {ouroStatus ? (
+                              <ProjectStatusPill status={ouroStatus} />
+                            ) : null}
+                            <S.FeedTweetTimeInline>
+                              <S.FeedTweetTimeSep aria-hidden>·</S.FeedTweetTimeSep>
+                              <S.FeedTweetTime
                                 title={new Date(item.createdAt).toLocaleString()}
                               >
                                 {formatShortTimeAgo(item.createdAt)}
-                              </S.TimeMeta>
-                            </S.CardSubMetaRow>
-                          </S.CardTextCol>
-                        </S.CardMetaLeft>
-                        <S.CardToolbar>
+                              </S.FeedTweetTime>
+                            </S.FeedTweetTimeInline>
+                          </S.FeedTweetAppLeading>
+                          <S.CardActionBarOverflow>
+                            <FeedPostOverflowMenu
+                              detailPath={detailHref}
+                              transactionId={item.transactionId}
+                              cardLabel={cardTitle}
+                            />
+                          </S.CardActionBarOverflow>
+                        </S.FeedTweetAppRow>
+                      </S.FeedTweetBody>
+
+                      <S.CardPreviewFrame>
+                        <S.CardPreviewIframe
+                          title={`${item.appName} preview`}
+                          srcDoc={item.previewHtml}
+                          sandbox="allow-scripts"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      </S.CardPreviewFrame>
+
+                      <S.CardActionBar>
+                        <S.FeedSocialActionCluster
+                          role="group"
+                          aria-label="Listing actions"
+                        >
                           <S.FeedCommentLinkButton
+                            type="button"
                             variant="ghost"
                             size="sm"
-                            nativeButton={false}
-                            render={<Link to={detailHref} />}
-                            title={`${comments.length} ${comments.length === 1 ? "comment" : "comments"} — open detail`}
-                            aria-label={`Open ${cardTitle} detail — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
+                            aria-expanded={commentsThreadVisible}
+                            title={
+                              commentsThreadVisible
+                                ? `${comments.length} ${comments.length === 1 ? "comment" : "comments"} — hide comments`
+                                : `${comments.length} ${comments.length === 1 ? "comment" : "comments"} — show comments`
+                            }
+                            aria-label={
+                              commentsThreadVisible
+                                ? `Hide comments on ${cardTitle} — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`
+                                : `Show comments on ${cardTitle} — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`
+                            }
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setFeedCommentsRevealed((p) => {
+                                const show = p[item.id] !== true
+                                if (show) {
+                                  window.setTimeout(() => {
+                                    document
+                                      .getElementById(`comments-${item.id}`)
+                                      ?.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "start",
+                                      })
+                                  }, 0)
+                                }
+                                return { ...p, [item.id]: show }
+                              })
+                            }}
                           >
                             <S.Icon16>
                               <MessageSquareIcon strokeWidth={2} aria-hidden />
@@ -437,24 +508,19 @@ export function ActivityFeedPage() {
                               {comments.length > 99 ? "99+" : comments.length}
                             </S.TabularText>
                           </S.FeedCommentLinkButton>
-                          <S.FeedRemixToggleButton
+                          <S.FeedCommentLinkButton
                             type="button"
                             variant="ghost"
                             size="sm"
-                            title={`${remixListCount} remixes — add idea or browse forks`}
-                            aria-label={`Remix ${item.appName}: ${remixListCount} forks, open list and composer`}
-                            aria-expanded={remixListPostId === item.id}
-                            aria-haspopup="dialog"
-                            $remixOpen={remixListPostId === item.id}
-                            onClick={() => {
-                              setRemixListPostId((cur) => {
-                                if (cur === item.id) {
-                                  setRemixText("")
-                                  return null
-                                }
-                                setRemixText("")
-                                return item.id
-                              })
+                            title={`${remixListCount} community remixes — start yours from this app`}
+                            aria-label={`Remix ${item.appName} — opens create remix with this listing (${remixListCount} other remixes on the app page)`}
+                            onPointerDown={(e) => {
+                              e.stopPropagation()
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setRemixCreateFeedId(item.id)
+                              setCreateProjectOpen(true)
                             }}
                           >
                             <S.Icon16>
@@ -463,16 +529,125 @@ export function ActivityFeedPage() {
                             <S.TabularText>
                               {remixListCount > 99 ? "99+" : remixListCount}
                             </S.TabularText>
-                          </S.FeedRemixToggleButton>
-                        </S.CardToolbar>
-                      </S.CardMetaRow>
-                    </S.CardMetaSection>
+                          </S.FeedCommentLinkButton>
+                          <S.FeedViewAppLinkButton
+                            variant="ghost"
+                            size="sm"
+                            nativeButton={false}
+                            render={<Link to={detailHref} />}
+                            title={`Open ${item.appName} app`}
+                            aria-label={`View app — ${item.appName}`}
+                          >
+                            <S.Icon16>
+                              <Globe strokeWidth={2} aria-hidden />
+                            </S.Icon16>
+                          </S.FeedViewAppLinkButton>
+                        </S.FeedSocialActionCluster>
+                        <S.FeedVoteCluster
+                          role="group"
+                          aria-label="Vote on this listing"
+                        >
+                          <S.VoteIconBtn
+                            variant="vote"
+                            voteDirection="up"
+                            aria-label="Upvote"
+                            aria-pressed={v === "up"}
+                            onClick={() => toggleVote(item.id, "up")}
+                          >
+                            <S.VoteArrowWrap>
+                              <VoteBlockArrowUp filled={v === "up"} />
+                            </S.VoteArrowWrap>
+                          </S.VoteIconBtn>
+                          <S.FeedListingScoreValue
+                            $tone={scoreTone(score)}
+                            title="Score"
+                          >
+                            {formatCount(score)}
+                          </S.FeedListingScoreValue>
+                          <S.VoteIconBtn
+                            variant="vote"
+                            voteDirection="down"
+                            aria-label="Downvote"
+                            aria-pressed={v === "down"}
+                            onClick={() => toggleVote(item.id, "down")}
+                          >
+                            <S.VoteArrowWrap>
+                              <VoteBlockArrowDown filled={v === "down"} />
+                            </S.VoteArrowWrap>
+                          </S.VoteIconBtn>
+                        </S.FeedVoteCluster>
+                      </S.CardActionBar>
+                    </S.CardTweetSection>
                   </S.FeedCard>
 
-                  {open ? (
-                    <S.ThreadPanel>
-                      <S.ThreadInner>
-                        {(() => {
+                  <S.ThreadPanel id={`comments-${item.id}`}>
+                    <S.ThreadInner>
+                      {commentsThreadVisible ? (
+                        <form
+                          onSubmit={(e) =>
+                            void submitComment(e, item.id, ouroSlug)
+                          }
+                        >
+                          <label
+                            htmlFor={`feed-comment-${item.id}`}
+                            className="sr-only"
+                          >
+                            {ouroSlug ? "Message workspace" : "Add comment"}
+                          </label>
+                          <DetailCommentS.DetailComposerWrapper
+                            data-create-mode="false"
+                          >
+                            <DetailCommentS.CommentComposerShell $quietUntilFocus>
+                              <DetailCommentS.DetailCreateContextTag>
+                                <DetailCommentS.DetailCreateContextIcon>
+                                  <Send strokeWidth={2} aria-hidden />
+                                </DetailCommentS.DetailCreateContextIcon>
+                                <DetailCommentS.DetailCreateContextText>
+                                  {feedComposerContextLabel}
+                                </DetailCommentS.DetailCreateContextText>
+                              </DetailCommentS.DetailCreateContextTag>
+                              <DetailCommentS.DetailComposerFieldRow>
+                                <DetailCommentS.CommentComposerTextarea
+                                  id={`feed-comment-${item.id}`}
+                                  value={draftByPost[item.id] ?? ""}
+                                  onChange={(e) =>
+                                    setDraftByPost((p) => ({
+                                      ...p,
+                                      [item.id]: e.target.value,
+                                    }))
+                                  }
+                                  rows={1}
+                                  placeholder={feedComposerPlaceholder}
+                                />
+                                <DetailCommentS.PostCommentFab
+                                  type="submit"
+                                  disabled={
+                                    !(draftByPost[item.id] ?? "").trim() ||
+                                    feedComposerBusy
+                                  }
+                                  aria-label={
+                                    ouroSlug
+                                      ? "Send message to workspace"
+                                      : "Post comment"
+                                  }
+                                  title={
+                                    ouroSlug
+                                      ? "Send to team lead"
+                                      : "Post comment"
+                                  }
+                                >
+                                  <DetailCommentS.PostCommentFabIcon>
+                                    <ArrowUpIcon strokeWidth={2.25} aria-hidden />
+                                  </DetailCommentS.PostCommentFabIcon>
+                                </DetailCommentS.PostCommentFab>
+                              </DetailCommentS.DetailComposerFieldRow>
+                            </DetailCommentS.CommentComposerShell>
+                          </DetailCommentS.DetailComposerWrapper>
+                        </form>
+                      ) : null}
+
+                      {!commentsThreadVisible ? null : comments.length === 0 ? null : (
+                        (() => {
                           const threadRoots = sortCommentRootsByHot(
                             buildCommentTree(comments),
                           )
@@ -488,7 +663,7 @@ export function ActivityFeedPage() {
                               : threadRoots.slice(0, FEED_COMMENT_TOP_N)
                           return (
                             <>
-                              <S.CommentList>
+                              <CommentsStatRowList>
                                 {visibleRoots.map((node) => (
                                   <CommentThreadNode
                                     key={node.id}
@@ -505,12 +680,14 @@ export function ActivityFeedPage() {
                                       setFeedReplyDraft,
                                       toggleFeedCommentVote,
                                       submitFeedReply,
-                                      setRemixText,
-                                      setRemixListPostId,
+                                      onOpenRemixCreate: () => {
+                                        setRemixCreateFeedId(item.id)
+                                        setCreateProjectOpen(true)
+                                      },
                                     }}
                                   />
                                 ))}
-                              </S.CommentList>
+                              </CommentsStatRowList>
                               {hiddenRootCount > 0 && !expanded ? (
                                 <ViewMoreCommentsRow>
                                   <ViewMoreCommentsButton
@@ -528,7 +705,8 @@ export function ActivityFeedPage() {
                                       : "threads"}
                                   </ViewMoreCommentsButton>
                                   <OpenDetailCommentsLink
-                                    to={`${detailHref}#comments`}
+                                    to={detailHref}
+                                    state={{ scrollToComments: true }}
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     Open full thread
@@ -537,30 +715,11 @@ export function ActivityFeedPage() {
                               ) : null}
                             </>
                           )
-                        })()}
-                        <CommentForm onSubmit={(e) => submitComment(e, item.id)}>
-                          <label className="sr-only" htmlFor={`comment-${item.id}`}>
-                            Add a comment
-                          </label>
-                          <CommentTextarea
-                            id={`comment-${item.id}`}
-                            rows={2}
-                            value={draftByPost[item.id] ?? ""}
-                            onChange={(e) =>
-                              setDraftByPost((p) => ({
-                                ...p,
-                                [item.id]: e.target.value,
-                              }))
-                            }
-                            placeholder="Add a comment…"
-                          />
-                          <CommentSubmitButton type="submit" size="sm">
-                            Comment
-                          </CommentSubmitButton>
-                        </CommentForm>
-                      </S.ThreadInner>
-                    </S.ThreadPanel>
-                  ) : null}
+                        })()
+                      )}
+                    </S.ThreadInner>
+                  </S.ThreadPanel>
+                  </S.FeedListingSurface>
                 </S.FeedItemArticle>
               </li>
             )
@@ -568,100 +727,6 @@ export function ActivityFeedPage() {
         </S.FeedList>
       </S.FeedMain>
 
-      <Dialog
-        open={remixListPostId !== null}
-        onOpenChange={(dialogOpen) => {
-          if (!dialogOpen) {
-            setRemixListPostId(null)
-            setRemixText("")
-          }
-        }}
-      >
-        <S.RemixDialogContent>
-          {remixListDialogItem ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Remixes</DialogTitle>
-                <DialogDescription>
-                  Forks and variants spun from{" "}
-                  <S.DialogTitleAccent>
-                    {remixListDialogItem.appName}
-                  </S.DialogTitleAccent>
-                  .
-                </DialogDescription>
-              </DialogHeader>
-              <S.RemixDialogList aria-label="Remix list">
-                {mockRemixListForItem(remixListDialogItem).map((r) => (
-                  <li key={r.id}>
-                    <S.RemixDialogRowLink
-                      to={studioPathForProtocol(remixListDialogItem.appName)}
-                      onClick={() => setRemixListPostId(null)}
-                    >
-                      <S.RemixDialogAvatar>
-                        <S.RemixDialogAvatarFallback>
-                          {r.authorInitials}
-                        </S.RemixDialogAvatarFallback>
-                      </S.RemixDialogAvatar>
-                      <S.RemixDialogRowBody>
-                        <S.RemixDialogRowTitle>{r.title}</S.RemixDialogRowTitle>
-                        <S.RemixDialogRowMeta>
-                          <S.RemixDialogAuthor>{r.author}</S.RemixDialogAuthor>
-                          <span aria-hidden> · </span>
-                          <span title={new Date(r.createdAt).toLocaleString()}>
-                            {formatShortTimeAgo(r.createdAt)}
-                          </span>
-                        </S.RemixDialogRowMeta>
-                        <S.RemixDialogVotes>
-                          {formatCount(r.score)} votes
-                        </S.RemixDialogVotes>
-                      </S.RemixDialogRowBody>
-                    </S.RemixDialogRowLink>
-                  </li>
-                ))}
-              </S.RemixDialogList>
-              <S.RemixComposerSection
-                role="region"
-                aria-label="Add a remix idea"
-              >
-                <S.RemixContextChip>
-                  <S.RemixContextIcon>
-                    <MousePointer2Icon aria-hidden />
-                  </S.RemixContextIcon>
-                  <S.RemixContextName>{remixListDialogItem.appName}</S.RemixContextName>
-                </S.RemixContextChip>
-                <S.RemixComposerRow>
-                  <label className="sr-only" htmlFor="feed-remix-dialog-composer">
-                    How you want to remix this app
-                  </label>
-                  <S.RemixComposerTextarea
-                    ref={remixInputRef}
-                    id="feed-remix-dialog-composer"
-                    rows={2}
-                    value={remixText}
-                    onChange={(e) => setRemixText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                        e.preventDefault()
-                        submitRemixIdea(remixListDialogItem.id)
-                      }
-                    }}
-                    placeholder="What should this remix do differently?"
-                  />
-                  <S.RemixSendIconButton
-                    type="button"
-                    size="icon"
-                    aria-label="Send remix idea"
-                    disabled={!remixText.trim()}
-                    onClick={() => submitRemixIdea(remixListDialogItem.id)}
-                  >
-                    <ArrowUpIcon strokeWidth={2.25} />
-                  </S.RemixSendIconButton>
-                </S.RemixComposerRow>
-              </S.RemixComposerSection>
-            </>
-          ) : null}
-        </S.RemixDialogContent>
-      </Dialog>
     </S.Page>
   )
 }

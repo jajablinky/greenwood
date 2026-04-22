@@ -55,6 +55,45 @@ export function buildBazarStylePreviewHtml(appName: string): string {
   </div>`)
 }
 
+/** Same Bazar shell with an “agent patched” banner and tweaked listing (mock agent feedback). */
+export function buildBazarStylePreviewHtmlAgentPatched(
+  appName: string,
+  userHint: string,
+): string {
+  const featured = escapeHtml(
+    appName.length > 26 ? `${appName.slice(0, 24)}…` : appName,
+  )
+  const hint = escapeHtml(userHint.length > 90 ? `${userHint.slice(0, 88)}…` : userHint)
+  return doc(`<style>
+    *{box-sizing:border-box;margin:0}
+    html,body{height:100%;font-family:"DM Sans",sans-serif;-webkit-font-smoothing:antialiased}
+    body{background:#eceef2;color:#111827;display:flex;flex-direction:column;min-height:100%}
+    .agentbar{padding:6px 10px;background:linear-gradient(90deg,#ecfdf5,#d1fae5);border-bottom:1px solid #6ee7b7;font-size:9px;font-weight:600;color:#065f46;letter-spacing:-.02em}
+    .top{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#fff;border-bottom:1px solid #e5e7eb}
+    .brand{font-size:14px;font-weight:500;letter-spacing:-.03em;color:#111827}
+    .live{font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:#047857;padding:3px 7px;border-radius:999px;background:#ecfdf5;border:1px solid #a7f3d0}
+    .search{margin:8px 10px;padding:8px 10px;border-radius:10px;background:#fff;border:1px solid #86efac;font-size:9px;color:#166534}
+    .grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 10px 10px;align-content:start}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+    .card.hot{border-color:#6ee7b7;box-shadow:0 0 0 1px rgba(16,185,129,.25)}
+    .thumb{height:54px;background:linear-gradient(160deg,#f8fafc,#e2e8f0);position:relative}
+    .thumb::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 25%,rgba(13,148,136,.18),transparent 60%)}
+    .body{padding:8px 9px 9px}
+    .t{font-size:9px;font-weight:500;color:#0f172a;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .p{margin-top:5px;font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;color:#047857}
+    .sub{font-size:7px;color:#64748b;margin-top:2px}
+  </style>
+  <div class="agentbar">Agent applied · ${hint}</div>
+  <div class="top"><span class="brand">Bazar</span><span class="live">Live</span></div>
+  <div class="search" role="search">Intent: ${hint}</div>
+  <div class="grid">
+    <div class="card hot"><div class="thumb"></div><div class="body"><div class="t">${featured}</div><div class="p">0.39 AR</div><div class="sub">Updated</div></div></div>
+    <div class="card"><div class="thumb" style="background:linear-gradient(160deg,#ecfccb,#bef264)"></div><div class="body"><div class="t">Llamaland</div><div class="p">1.08 AR</div><div class="sub">Game</div></div></div>
+    <div class="card"><div class="thumb" style="background:linear-gradient(160deg,#ccfbf1,#99f6e4)"></div><div class="body"><div class="t">Wayfinder route #12</div><div class="p">0.03 AR</div><div class="sub">UCM</div></div></div>
+    <div class="card"><div class="thumb" style="background:linear-gradient(160deg,#ffedd5,#fed7aa)"></div><div class="body"><div class="t">Profile badge mint</div><div class="p">2.40 AR</div><div class="sub">Auction</div></div></div>
+  </div>`)
+}
+
 /** Playful grass-and-sky mock for the Llamaland feed row (distinct from Bazar marketplace). */
 export function buildLlamalandGamePreviewHtml(): string {
   return doc(`<style>

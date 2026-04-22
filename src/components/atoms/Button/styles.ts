@@ -3,6 +3,7 @@ import styled, { css } from "styled-components"
 
 type BtnVariant =
   | "default"
+  | "accent"
   | "outline"
   | "secondary"
   | "ghost"
@@ -63,20 +64,30 @@ const variantCss: Record<Exclude<BtnVariant, "vote">, ReturnType<typeof css>> = 
       background: color-mix(in oklab, var(--primary) 80%, transparent);
     }
   `,
+  /** Inverted solid pill — use for strong calls-to-action (e.g. Follow). */
+  accent: css`
+    border-color: transparent;
+    background: var(--foreground);
+    color: var(--background);
+    font-weight: 600;
+    &:hover:not(:disabled) {
+      background: color-mix(in oklab, var(--foreground) 90%, transparent);
+    }
+  `,
+  /** Soft outline — transparent pill with a muted border, used for secondary
+      actions that sit beside an `accent` primary (e.g. Share). */
   outline: css`
-    border-color: var(--border);
-    background: var(--background);
+    border-color: color-mix(in oklab, var(--border) 75%, transparent);
+    background: transparent;
+    color: var(--foreground);
     &:hover:not(:disabled),
     &[aria-expanded="true"] {
-      background: var(--muted);
+      background: color-mix(in oklab, var(--foreground) 5%, transparent);
       color: var(--foreground);
-    }
-    .dark & {
-      background: transparent;
     }
     .dark &:hover:not(:disabled),
     .dark &[aria-expanded="true"] {
-      background: color-mix(in oklab, var(--input) 30%, transparent);
+      background: color-mix(in oklab, var(--foreground) 8%, transparent);
     }
   `,
   secondary: css`
@@ -93,19 +104,18 @@ const variantCss: Record<Exclude<BtnVariant, "vote">, ReturnType<typeof css>> = 
   ghost: css`
     background: transparent;
 
-    &:hover:not(:disabled),
-    &[aria-expanded="true"] {
-      background: color-mix(in oklab, var(--foreground) 10%, transparent);
-      color: var(--foreground);
+    &:hover:not(:disabled) {
+      background: var(--accent);
+      color: var(--accent-foreground);
     }
 
     .dark & {
       background: transparent;
     }
 
-    .dark &:hover:not(:disabled),
-    .dark &[aria-expanded="true"] {
-      background: color-mix(in oklab, var(--foreground) 14%, transparent);
+    .dark &:hover:not(:disabled) {
+      background: var(--muted);
+      color: var(--foreground);
     }
   `,
   destructive: css`

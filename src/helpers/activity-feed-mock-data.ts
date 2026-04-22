@@ -190,6 +190,54 @@ const REMIX_TITLE_SEEDS = [
   "Floor depth chart + liquidity notes",
 ]
 
+/** Short fork names for `Remix:Name|…` bodies — must not match the listing under the comment. */
+const CROSS_APP_REMIXES: readonly { label: string; prompt: string }[] = [
+  {
+    label: "Llamaland",
+    prompt:
+      "Game shell + progress rail — want the same energy on our KPI cards.",
+  },
+  {
+    label: "Bazar",
+    prompt: "Listing chrome + AR row; borrowing the media grid for our drop.",
+  },
+  {
+    label: "Lumen",
+    prompt: "SaaS hero + pricing strip — tight copy and annual toggle pattern.",
+  },
+  {
+    label: "Harbor",
+    prompt: "Deploy timeline + runbook links; same clarity for our release train.",
+  },
+  {
+    label: "Northwind",
+    prompt: "Exec overview + cohort drill-down; porting the retention bridge.",
+  },
+]
+
+function appShortLabel(item: GlobalFeedItem): string {
+  if (item.cardTitle) return item.cardTitle
+  const head = item.appName.split(" —")[0]?.trim()
+  if (head) return head
+  return item.appName
+}
+
+/** Replace one seeded comment per fork with a cross-app remix line (deterministic). */
+function intermixCrossAppRemixIntoComments(item: GlobalFeedItem): FeedComment[] {
+  const { forkId, initialComments } = item
+  if (initialComments.length === 0) return initialComments
+  const self = appShortLabel(item)
+  const pool = CROSS_APP_REMIXES.filter(
+    (r) => r.label.toLowerCase() !== self.toLowerCase(),
+  )
+  if (pool.length === 0) return initialComments
+  const choice = stablePick(`${forkId}\0remixpick`, pool)
+  const body = `Remix:${choice.label}|${choice.prompt}`
+  const idxList = initialComments.map((_, i) => i)
+  const idx = stablePick(`${forkId}\0remixidx`, idxList)
+  return initialComments.map((c, i) => (i === idx ? { ...c, body } : c))
+}
+
 export function mockRemixListForItem(
   item: Pick<GlobalFeedItem, "id" | "forkId" | "createdAt" | "appName">
 ): FeedRemixListEntry[] {
@@ -260,7 +308,7 @@ const NORTHWIND_FORK_PREFIX = "p-jaja-research"
 
 export const INITIAL_ACTIVITY_FEED: GlobalFeedItem[] = (() => {
   const items = buildGlobalFeedFromProtocols(INITIAL_PROTOCOLS)
-  return items.map((item) => {
+  const withPreviews = items.map((item) => {
     /** Second Northwind fork in data — show as separate game listing in the feed. */
     if (item.forkId === "p-jaja-research-f2") {
       const name = "Llamaland"
@@ -289,6 +337,10 @@ export const INITIAL_ACTIVITY_FEED: GlobalFeedItem[] = (() => {
     }
     return item
   })
+  return withPreviews.map((item) => ({
+    ...item,
+    initialComments: intermixCrossAppRemixIntoComments(item),
+  }))
 })()
 
 /** Mock URL for the full-size preview page (wire to real navigation when ready). */

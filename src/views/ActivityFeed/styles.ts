@@ -1,28 +1,35 @@
 import styled, { css } from "styled-components"
 import { Link } from "react-router-dom"
+import { Menu } from "@base-ui/react/menu"
 
 import { Avatar, AvatarFallback } from "components/atoms/Avatar"
 import { Button } from "components/atoms/Button"
-import { DialogContent } from "components/atoms/Dialog"
+import { ConnectWalletButton } from "components/molecules/ConnectWalletButton"
 
 const tabular = css`
   font-variant-numeric: tabular-nums;
 `
 
 export const HeaderInner = styled.div`
+  box-sizing: border-box;
   margin-inline: auto;
   display: flex;
+  width: 100%;
   max-width: 48rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.375rem 0.375rem;
+  /* Align with feed main gutter (matches FeedMain / FeedSortBar). */
+  padding: 0.375rem var(--content-padding-x);
   @media (min-width: 640px) {
-    padding: 0.5rem 1.5rem;
+    max-width: 40rem;
+    /* Same inset as feed cards: FeedMain 0.75rem + FeedCard 0.5rem (see FeedItemArticle). */
+    padding: 0.5rem 1.25rem;
   }
 `
 
 export const HeaderBrandWrap = styled.div`
+  flex-shrink: 0;
   min-width: 0;
 `
 
@@ -46,28 +53,100 @@ export const HeaderActions = styled.div`
   gap: 0.5rem;
 `
 
-export const HeaderTextButton = styled(Button).attrs({
-  type: "button",
-  variant: "ghost",
-  size: "sm",
-})`
-  height: auto;
-  min-height: 0;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-md);
+/** Desktop: floating Create button — hidden on mobile, where the tab bar + handles it. */
+export const FeedCreateFab = styled(Button)`
+  display: none;
+
+  @media (min-width: 640px) {
+    display: inline-flex;
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 45;
+  }
 `
+
+/** Same ghost treatment + metrics as header text buttons (no wallet pill). */
+export const HeaderConnectWalletButton = styled(ConnectWalletButton).attrs({
+  feedHeader: true,
+})`
+  && {
+    height: auto;
+    min-height: 0;
+    flex-shrink: 0;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    border-radius: var(--radius-md);
+  }
+`
+
+/** Connected wallet — circular avatar; links to profile (disconnect from profile wallet control). */
+export const HeaderWalletAvatarLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    opacity: 0.92;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+`
+
+export const HeaderWalletAvatar = styled(Avatar).attrs({ size: "default" })`
+  flex-shrink: 0;
+  border-radius: 50%;
+
+  &::after {
+    border-width: 2.5px;
+    border-style: solid;
+    border-color: #0a0a0a;
+    mix-blend-mode: normal;
+  }
+
+  .dark &::after {
+    border-color: rgba(250, 250, 250, 0.94);
+  }
+`
+
+export const HeaderWalletAvatarFallback = styled(AvatarFallback)``
 
 export const FeedMain = styled.main`
   position: relative;
   z-index: 0;
   margin-inline: auto;
   max-width: 48rem;
-  padding: 0.375rem 0.375rem 4rem;
+  padding: 0.75rem var(--content-padding-x) 4rem;
+
   @media (min-width: 640px) {
-    padding-inline: 1.5rem;
-    padding-top: 0.75rem;
+    max-width: 40rem;
+    /* Tighter than 1.5rem so the feed column lines up with the app preview edge. */
+    padding: 1rem 0.75rem 4rem;
+  }
+`
+
+/** Inline thread composer — hidden on mobile (use app detail to comment). */
+export const FeedInlineComposerDesktopOnly = styled.div`
+  @media (max-width: 639.98px) {
+    display: none;
   }
 `
 
@@ -77,34 +156,56 @@ export const FeedList = styled.ol`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
-  @media (min-width: 640px) {
-    gap: 3.5rem;
-  }
-`
-
-export const FeedItemArticle = styled.article`
-  display: flex;
-  flex-direction: column;
   gap: 0;
 `
 
-export const CardTitleText = styled.span`
-  color: var(--foreground);
-  text-underline-offset: 2px;
-`
+export const FeedItemArticle = styled.article`
+  /* Tight to one title line; prompt sits on the next grid row, not beside the avatar. */
+  --feed-avatar-size: 1.75rem;
+  /* Horizontal space between avatar and title row (keep tight; thread indent uses this). */
+  --feed-avatar-gap: 0.25rem;
+  --feed-thread-indent: calc(var(--feed-avatar-size) + var(--feed-avatar-gap));
+  /* Inner card gutter; outer inset is FeedMain’s horizontal padding on mobile. */
+  --feed-card-padding-x: 0.375rem;
 
-export const FeedCard = styled.div`
-  position: relative;
-  cursor: pointer;
-  overflow: hidden;
-  border-radius: var(--radius-xl);
-  padding: 0.75rem;
-  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  @media (max-width: 639.98px) {
+    --feed-avatar-gap: 0.15rem;
+  }
 
   @media (min-width: 640px) {
-    padding: 1.5rem;
+    --feed-avatar-size: 2rem;
+    --feed-card-padding-x: 0.5rem;
   }
+`
+
+/**
+ * Wraps the feed card + comment thread so hover tint applies to the full listing
+ * (preview, actions, and comments) instead of only the card chrome.
+ */
+export const FeedListingSurface = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 0;
+  /* One rule per listing — separates modules; FeedList has no gap so the rule sits flush between items. */
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  /* Air below the previous item’s divider (first row has no line above). */
+  padding-top: 0.875rem;
+
+  li:first-child & {
+    padding-top: 0;
+  }
+
+  @media (min-width: 640px) {
+    padding-top: 1rem;
+  }
+
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
     background-color: color-mix(
@@ -121,17 +222,21 @@ export const FeedCard = styled.div`
       var(--card)
     );
   }
+`
 
-  &:hover ${CardTitleText} {
-    text-decoration: underline;
-  }
+export const FeedCard = styled.div`
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 0;
+  padding: 0.75rem var(--feed-card-padding-x, var(--content-padding-x));
 `
 
 export const CardOverlayLink = styled(Link)`
   position: absolute;
   inset: 0;
   z-index: 0;
-  border-radius: var(--radius-xl);
+  border-radius: 0;
   text-decoration: none;
 
   &:focus-visible {
@@ -142,12 +247,46 @@ export const CardOverlayLink = styled(Link)`
   }
 `
 
+/** Vote cluster — horizontal `↑ score ↓` (footer row, right-aligned). */
+export const FeedVoteCluster = styled.div`
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.125rem;
+  pointer-events: auto;
+
+  @media (min-width: 640px) {
+    gap: 0.25rem;
+  }
+`
+
+/** Comment · remix · view app — action bar, left (below the preview). */
+export const FeedSocialActionCluster = styled.div`
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.125rem;
+  pointer-events: auto;
+
+  @media (min-width: 640px) {
+    gap: 0.25rem;
+  }
+`
+
+/* Spans the full grid row (col 1 → col end) so the preview drops the avatar-
+   column indent and fills the card's content area on every viewport. */
 export const CardPreviewFrame = styled.div`
   position: relative;
   z-index: 10;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  min-width: 0;
+  width: 100%;
   min-height: 80px;
   overflow: hidden;
   border-radius: var(--radius-xl);
+  /* Extra air between subtitle row and the embed; row-gap alone is quite tight. */
+  margin-top: 0.2rem;
   pointer-events: none;
 `
 
@@ -162,145 +301,273 @@ export const CardPreviewIframe = styled.iframe`
   background: transparent;
 `
 
-export const CardMetaSection = styled.div`
+/**
+ * Grid: row1 = avatar | title line; row2 = prompt (col2 only). Preview + bar follow.
+ */
+export const CardTweetSection = styled.div`
   position: relative;
   z-index: 10;
-  padding-block: 0.5rem;
+  grid-template-columns: var(--feed-avatar-size) minmax(0, 1fr);
+  align-items: start;
+  /* Tight title→subtitle; preview/action rows rely on the same value + padding on iframe bar. */
+  pointer-events: none;
 `
 
-export const CardMetaRow = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
+export const FeedTweetBody = styled.div`
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  pointer-events: auto;
+`
+
+/** Inline `· {time}` pair that sits next to the title. `display: inline-flex`
+    with `nowrap` keeps the separator glued to the time when the title wraps. */
+export const FeedTweetTimeInline = styled.span`
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: baseline;
+  gap: 0.25rem;
+  white-space: nowrap;
+`
+
+export const FeedTweetTimeSep = styled.span`
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1;
+`
+
+export const FeedTweetPrompt = styled.p`
+  display: none;
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  pointer-events: auto;
+
+  @media (max-width: 639.98px) {
+    font-size: 0.75rem;
+    line-height: 1.2rem;
+  }
+
   @media (min-width: 640px) {
-    gap: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.375rem;
   }
 `
 
-export const CardMetaLeft = styled.div`
-  pointer-events: none;
+/** App title + status + time (leading) and absolutely positioned overflow (top right). */
+export const FeedTweetAppRow = styled.div`
+  position: relative;
   display: flex;
   min-width: 0;
-  flex: 1 1 0%;
+  /* flex-start: title, time, and overflow share the same top edge as the
+     avatar. (center would vertically center a one-line title in the 2rem menu.) */
+  align-items: flex-start;
+  gap: 0.5rem;
+`
+
+/** Title + status pill + inline time; shares the top row with the vote cluster.
+    `flex: 0 1 auto` on the name keeps the time glued to the end of the title
+    instead of stretching across the available space. */
+export const FeedTweetAppLeading = styled.div`
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.35rem;
+  /* Room for the absolute ⋮ (2rem) */
+  padding-right: 2.25rem;
+`
+
+export const FeedTweetAppName = styled.span`
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  line-height: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+
+  @media (max-width: 639.98px) {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    font-size: 1rem;
+    line-height: 1.45rem;
+  }
+`
+
+export const FeedPostOverflowTrigger = styled(Menu.Trigger)`
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+
+  &:hover {
+    background: color-mix(in oklab, var(--foreground) 8%, transparent);
+    color: var(--foreground);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+`
+
+export const FeedPostOverflowPopup = styled(Menu.Popup)`
+  z-index: 60;
+  min-width: 12rem;
+  padding: 0.35rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow:
+    0 10px 38px -10px rgb(15 23 42 / 28%),
+    0 4px 16px -8px rgb(15 23 42 / 12%);
+
+  .dark & {
+    box-shadow:
+      0 10px 38px -10px rgb(0 0 0 / 45%),
+      0 4px 16px -8px rgb(0 0 0 / 35%);
+  }
+`
+
+export const FeedPostOverflowMenuItem = styled(Menu.Item)`
+  display: flex;
+  cursor: pointer;
   align-items: center;
   gap: 0.5rem;
-  @media (min-width: 640px) {
-    gap: 0.75rem;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--foreground);
+  outline: none;
+
+  &[data-highlighted] {
+    background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  }
+`
+
+export const FeedPostOverflowMenuItemIcon = styled.span`
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+
+  & > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+`
+
+export const BuilderAvatarLink = styled(Link)`
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  justify-self: start;
+  line-height: 0;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: inherit;
+  outline: none;
+  /* Re-enable events so the avatar opens the profile (and fires the hover
+     preview) instead of the underlying card overlay link. */
+  pointer-events: auto;
+  cursor: pointer;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--ring);
   }
 `
 
 export const BuilderAvatar = styled(Avatar)`
-  aspect-ratio: 1;
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-  border-radius: 9999px;
-
-  &::after {
+  && {
+    aspect-ratio: 1;
+    width: var(--feed-avatar-size);
+    height: var(--feed-avatar-size);
+    flex-shrink: 0;
     border-radius: 9999px;
   }
 
-  @media (min-width: 640px) {
-    width: 2.25rem;
-    height: 2.25rem;
+  &::after {
+    border-radius: 9999px;
   }
 `
 
 export const BuilderAvatarFallback = styled(AvatarFallback)`
   border-radius: inherit;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 500;
-`
+  font-size: 0.625rem;
+  line-height: 1;
+  font-weight: 600;
 
-export const CardTextCol = styled.div`
-  display: flex;
-  min-width: 0;
-  flex: 1 1 0%;
-  flex-direction: column;
-  align-items: stretch;
-  align-self: stretch;
-`
-
-export const CardTitleRow = styled.div`
-  display: flex;
-  min-width: 0;
-  flex-wrap: nowrap;
-  align-items: center;
-  column-gap: 0.5rem;
   @media (min-width: 640px) {
-    column-gap: 0.625rem;
+    font-size: 0.6875rem;
   }
-`
-
-export const CardTitleHeading = styled.h2`
-  margin: 0;
-  min-width: 0;
-  flex-shrink: 1;
-  font-size: 15px;
-  line-height: 1.375;
-  font-weight: 500;
-  @media (min-width: 640px) {
-    font-size: 1rem;
-    line-height: 1.5rem;
-  }
-`
-
-export const CardSubMetaRow = styled.div`
-  margin-top: 0.125rem;
-  display: flex;
-  min-width: 0;
-  flex-wrap: nowrap;
-  align-items: center;
-  column-gap: 0.375rem;
-  overflow: hidden;
-  font-size: 11px;
-  line-height: 1rem;
-  color: var(--muted-foreground);
-  @media (min-width: 640px) {
-    column-gap: 0.5rem;
-    font-size: 0.75rem;
-    line-height: 1rem;
-  }
-`
-
-export const WalletAbbrev = styled.span`
-  flex-shrink: 0;
-  font-weight: 500;
-  ${tabular};
-  color: color-mix(in oklab, var(--foreground) 80%, transparent);
-`
-
-export const DotSep = styled.span`
-  flex-shrink: 0;
 `
 
 export const TimeMeta = styled.span`
   flex-shrink: 0;
 `
 
-export const CardToolbar = styled.div`
-  position: relative;
-  z-index: 20;
-  display: flex;
-  cursor: auto;
-  flex-shrink: 0;
-  flex-wrap: nowrap;
-  align-items: center;
-  column-gap: 0.375rem;
-  align-self: center;
-  pointer-events: auto;
+export const FeedTweetTime = styled(TimeMeta)`
+  color: var(--muted-foreground);
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  ${tabular};
+
+  @media (max-width: 639.98px) {
+    font-size: 0.6875rem;
+    line-height: 0.9375rem;
+  }
+
+  @media (min-width: 640px) {
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+  }
 `
 
 const feedGhostToolbarButtonCss = css`
-  height: 2.25rem;
-  min-height: 2.25rem;
+  height: 2rem;
+  min-height: 2rem;
   flex-shrink: 0;
-  column-gap: 0.375rem;
+  column-gap: 0.25rem;
   border-radius: 9999px;
   border: 0;
-  padding-inline: 0.625rem;
+  padding-inline: 0.3125rem;
   color: var(--muted-foreground);
   background: transparent;
   text-decoration: none;
@@ -315,8 +582,10 @@ const feedGhostToolbarButtonCss = css`
   }
 
   @media (min-width: 640px) {
-    height: 2.5rem;
-    min-height: 2.5rem;
+    height: 2.125rem;
+    min-height: 2.125rem;
+    column-gap: 0.3125rem;
+    padding-inline: 0.5rem;
   }
 `
 
@@ -325,41 +594,82 @@ export const FeedCommentLinkButton = styled(Button)`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Icon + count: a bit more air than base ghost column-gap */
+  column-gap: 0.375rem;
+
+  @media (min-width: 640px) {
+    column-gap: 0.5rem;
+  }
 `
 
-export const FeedRemixToggleButton = styled(Button).withConfig({
-  shouldForwardProp: (prop) => prop !== "$remixOpen",
-})<{ $remixOpen?: boolean }>`
-  ${feedGhostToolbarButtonCss};
+const feedIconOnlySquareCss = css`
+  /* Override Button size="sm" padding and line-height so SVGs optically center */
+  && {
+    box-sizing: border-box;
+    padding: 0 !important;
+    line-height: 0;
+  }
 
-  ${(p) =>
-    p.$remixOpen &&
-    css`
-      background: color-mix(in oklab, oklch(0.65 0.15 250) 60%, transparent);
-      color: var(--foreground);
-      box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  width: 2rem;
+  min-width: 2rem;
+  max-width: 2rem;
+  height: 2rem;
 
-      &:hover {
-        background: color-mix(in oklab, oklch(0.65 0.15 250) 80%, transparent) !important;
-      }
-
-      .dark & {
-        background: color-mix(in oklab, oklch(0.45 0.12 250) 35%, transparent);
-      }
-
-      .dark &:hover {
-        background: color-mix(in oklab, oklch(0.45 0.12 250) 45%, transparent) !important;
-      }
-    `}
+  @media (min-width: 640px) {
+    width: 2.125rem;
+    min-width: 2.125rem;
+    max-width: 2.125rem;
+    height: 2.125rem;
+  }
 `
 
+/** Icon-only link to app detail. */
+export const FeedViewAppLinkButton = styled(FeedCommentLinkButton)`
+  ${feedIconOnlySquareCss};
+`
+
+/**
+ * Footer row: social actions (left) and vote cluster (right). Overflow ⋮ is in
+ * the header row (top right).
+ */
+export const CardActionBar = styled.div`
+  position: relative;
+  z-index: 20;
+  grid-column: 1 / -1;
+  grid-row: 4;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.125rem 0 0;
+  pointer-events: auto;
+`
+
+export const CardActionBarOverflow = styled.span`
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: auto;
+`
+
+/** Toolbar glyph slot — matches Button’s default `svg { 1rem }` so icons stay centered. */
 export const Icon16 = styled.span`
   display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   width: 1rem;
   height: 1rem;
+  line-height: 0;
 
   & > svg {
+    display: block;
     width: 100%;
     height: 100%;
   }
@@ -367,17 +677,6 @@ export const Icon16 = styled.span`
 
 export const TabularText = styled.span`
   ${tabular};
-`
-
-export const VoteGroup = styled.div`
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-  overflow: hidden;
-  /* CardMetaLeft uses pointer-events: none so the card link receives clicks; keep voting interactive. */
-  pointer-events: auto;
 `
 
 export const VoteIconBtn = styled(Button).attrs({ type: "button" })`
@@ -448,6 +747,11 @@ export const ScoreValue = styled.span<{ $tone: ScoreTone }>`
       color: inherit;
     `}
 
+  @media (max-width: 639.98px) {
+    min-width: 1.75rem;
+    font-size: 0.875rem;
+  }
+
   @media (min-width: 640px) {
     min-width: 2.4rem;
     font-size: 1.125rem;
@@ -455,253 +759,30 @@ export const ScoreValue = styled.span<{ $tone: ScoreTone }>`
   }
 `
 
-export const ThreadPanel = styled.div`
-  padding: 0 0.75rem 0.75rem;
+/** Vertical score between arrows in the feed listing vote column. */
+export const FeedListingScoreValue = styled(ScoreValue)`
+  min-width: 0;
+  max-width: 100%;
+  min-height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0.125rem;
+
   @media (min-width: 640px) {
-    padding-inline: 1rem;
-    padding-bottom: 1rem;
+    min-height: 1.5rem;
   }
+`
+
+export const ThreadPanel = styled.div`
+  /* Line up with CardTweetSection column 2: card inset + avatar column + gap */
+  padding: 0 var(--feed-card-padding-x) 1rem;
 `
 
 export const ThreadInner = styled.div`
-  margin-top: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  border-top: 1px solid rgb(0 0 0 / 6%);
-  padding-top: 1rem;
-
-  .dark & {
-    border-color: rgb(255 255 255 / 8%);
-  }
-`
-
-export const CommentList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`
-
-export const RemixDialogContent = styled(DialogContent)`
-  display: flex;
-  max-height: min(85vh, 36rem);
-  flex-direction: column;
-  gap: 1rem;
-  overflow: hidden;
-  padding: 1.25rem;
-
-  @media (min-width: 640px) {
-    max-width: 32rem;
-  }
-`
-
-export const DialogTitleAccent = styled.span`
-  font-weight: 500;
-  color: var(--foreground);
-`
-
-export const RemixDialogList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: min(38vh, 18rem);
-  min-height: 0;
-  flex: 1 1 0%;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 0.125rem;
-`
-
-export const RemixDialogRowLink = styled(Link)`
-  display: flex;
-  gap: 0.75rem;
-  border-radius: var(--radius-xl);
-  border: 1px solid rgb(0 0 0 / 8%);
-  background: color-mix(in oklab, var(--muted) 25%, transparent);
-  padding: 0.75rem;
-  text-decoration: none;
-  color: inherit;
-  transition: background-color 150ms ease;
-
-  &:hover {
-    background: color-mix(in oklab, var(--muted) 45%, transparent);
-  }
-
-  .dark & {
-    border-color: rgb(255 255 255 / 10%);
-  }
-
-  .dark &:hover {
-    background: color-mix(in oklab, var(--muted) 20%, transparent);
-  }
-`
-
-export const RemixDialogAvatar = styled(Avatar)`
-  width: 2.25rem;
-  height: 2.25rem;
-  flex-shrink: 0;
-  border-radius: var(--radius-lg);
-`
-
-export const RemixDialogAvatarFallback = styled(AvatarFallback)`
-  border-radius: var(--radius-lg);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 500;
-`
-
-export const RemixDialogRowBody = styled.div`
-  min-width: 0;
-  flex: 1 1 0%;
-`
-
-export const RemixDialogRowTitle = styled.p`
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.375;
-  color: var(--foreground);
-`
-
-export const RemixDialogRowMeta = styled.p`
-  margin: 0.125rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  color: var(--muted-foreground);
-`
-
-export const RemixDialogAuthor = styled.span`
-  font-weight: 500;
-  color: color-mix(in oklab, var(--foreground) 80%, transparent);
-`
-
-export const RemixDialogVotes = styled.p`
-  margin: 0.125rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  ${tabular};
-  color: var(--muted-foreground);
-`
-
-export const RemixComposerSection = styled.div`
-  flex-shrink: 0;
-  border-top: 1px solid rgb(0 0 0 / 6%);
-  padding-top: 1rem;
-
-  .dark & {
-    border-color: rgb(255 255 255 / 8%);
-  }
-`
-
-export const RemixContextChip = styled.div`
-  margin-bottom: 0.5rem;
-  display: inline-flex;
-  max-width: 100%;
-  align-items: center;
-  gap: 0.375rem;
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, oklch(0.75 0.12 230) 50%, transparent);
-  padding: 0.25rem 0.5rem;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.375;
-  color: oklch(0.25 0.08 230);
-
-  .dark & {
-    background: color-mix(in oklab, oklch(0.35 0.08 230) 50%, transparent);
-    color: oklch(0.95 0.04 230);
-  }
-`
-
-export const RemixContextIcon = styled.span`
-  display: inline-flex;
-  flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-  opacity: 0.85;
-  color: oklch(0.45 0.12 230);
-
-  .dark & {
-    color: oklch(0.78 0.1 230);
-  }
-
-  & > svg {
-    width: 100%;
-    height: 100%;
-  }
-`
-
-export const RemixContextName = styled.span`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`
-
-export const RemixComposerRow = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-`
-
-export const RemixComposerTextarea = styled.textarea`
-  max-height: 7rem;
-  min-height: 44px;
-  flex: 1 1 0%;
-  resize: none;
-  border-radius: var(--radius-lg);
-  border: 0;
-  background: rgb(0 0 0 / 3%);
-  padding: 0.5rem 0.625rem;
-  font-size: 13px;
-  line-height: 1.375;
-  color: var(--foreground);
-  outline: none;
-  box-shadow: none;
-
-  &::placeholder {
-    color: color-mix(in oklab, var(--muted-foreground) 80%, transparent);
-  }
-
-  &:focus-visible {
-    background: rgb(0 0 0 / 4%);
-  }
-
-  .dark & {
-    background: rgb(255 255 255 / 6%);
-  }
-
-  .dark &:focus-visible {
-    background: rgb(255 255 255 / 8%);
-  }
-`
-
-export const RemixSendIconButton = styled(Button)`
-  width: 2.25rem;
-  height: 2.25rem;
-  flex-shrink: 0;
-  border-radius: 9999px;
-  background: var(--muted);
-  color: var(--muted-foreground);
-
-  & svg {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  &:hover {
-    background: color-mix(in oklab, var(--muted-foreground) 25%, transparent);
-    color: var(--background);
-  }
-
-  .dark &:hover {
-    background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
-  }
 `
 
 export const Page = styled.div`
@@ -714,14 +795,91 @@ export const Page = styled.div`
 `
 
 export const StickyHeader = styled.header`
+  /* Approx height of the brand row (padding 0.375 + 0.375 + line-height 1.25) — used to
+     slide just the brand off on mobile while the sort row stays pinned to the top. */
+  --feed-header-brand-height: 2rem;
+
   position: sticky;
   top: 0;
   z-index: 30;
-  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  border-bottom: none;
   box-shadow: none;
-  /* Solid page background — translucent + blur can read as a hairline under the header */
+  /* Solid page background — keeps the sort row legible while sticky. */
   background: #ffffff;
   .dark & {
     background: var(--background);
+  }
+
+  @media (min-width: 640px) {
+    --feed-header-brand-height: 2.25rem;
+  }
+
+  @media (max-width: 639.98px) {
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+
+    html[data-mobile-chrome-hidden="true"] & {
+      /* Hide only the brand row — keep Popular/New pinned to the top on scroll. */
+      transform: translateY(calc(-1 * var(--feed-header-brand-height)));
+    }
+  }
+`
+
+/** Sort controls — minimal text tabs; horizontal inset matches the feed avatar column. */
+export const FeedSortBar = styled.div`
+  box-sizing: border-box;
+  margin-inline: auto;
+  display: flex;
+  width: 100%;
+  max-width: 48rem;
+  gap: 1.25rem;
+  padding: 0.2rem var(--content-padding-x) 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+
+  @media (min-width: 640px) {
+    max-width: 40rem;
+    padding: 0.25rem 1.25rem 0;
+  }
+`
+
+export const FeedSortPill = styled.button<{ $active: boolean }>`
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0;
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid
+    ${(p) => (p.$active ? "var(--foreground)" : "transparent")};
+  background: transparent;
+  color: ${(p) => (p.$active ? "var(--foreground)" : "var(--muted-foreground)")};
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: ${(p) => (p.$active ? 600 : 500)};
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+
+  @media (min-width: 640px) {
+    font-size: 0.875rem;
+  }
+
+  &:hover {
+    color: var(--foreground);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+    border-radius: 2px;
   }
 `

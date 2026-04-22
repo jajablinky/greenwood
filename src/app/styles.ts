@@ -5,7 +5,7 @@ import { createGlobalStyle, css } from "styled-components"
  */
 const cssVariables = css`
   :root {
-    --background: oklch(0.988 0 0);
+    --background: oklch(1 0 0);
     --foreground: oklch(0.16 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.16 0 0);
@@ -36,6 +36,8 @@ const cssVariables = css`
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+    /** Shared horizontal gutter for main-column content (feed cards, profile, etc.). */
+    --content-padding-x: 1rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -112,6 +114,13 @@ const cssVariables = css`
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
   }
+
+  @media (max-width: 639.98px) {
+    :root {
+      /* Comfortable side inset for feed, profile, and other full-width columns. */
+      --content-padding-x: 1rem;
+    }
+  }
 `
 
 const baseRules = css`
@@ -120,7 +129,16 @@ const baseRules = css`
     outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
   }
 
+  html {
+    margin: 0;
+    padding: 0;
+    background: var(--background);
+  }
+
   body {
+    margin: 0;
+    padding: 0;
+    min-height: 100svh;
     background: var(--background);
     color: var(--foreground);
   }
@@ -138,9 +156,10 @@ const baseRules = css`
     resize: none;
   }
 
-  body,
   #root {
     min-height: 100svh;
+    margin: 0;
+    padding: 0;
   }
 
   h1,
