@@ -70,12 +70,20 @@ export const StickyHeader = styled.header`
   }
 `
 
+/** Left/right slots share flex so the title stays visually centered. */
+export const HeaderSlot = styled.div<{ $align: "start" | "end" }>`
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: ${(p) => (p.$align === "start" ? "flex-start" : "flex-end")};
+`
+
 export const HeaderInner = styled.div`
   margin-inline: auto;
   display: flex;
   max-width: 48rem;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
   padding: 0.375rem 0.375rem;
   @media (min-width: 640px) {
@@ -112,12 +120,20 @@ export const BackIcon = styled.span`
 `
 
 export const HeaderTitle = styled.span`
+  flex: 0 1 auto;
+  max-width: min(56vw, 14rem);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.875rem;
   line-height: 1.25rem;
   color: var(--muted-foreground);
+  text-align: center;
+
+  @media (min-width: 640px) {
+    max-width: min(42vw, 18rem);
+  }
 `
 
 export const DetailMain = styled.main<{ $ouroDock?: boolean }>`
@@ -147,6 +163,167 @@ export const DetailGrid = styled.div`
 
 export const PrimaryColumn = styled.section`
   min-width: 0;
+`
+
+/** Full-width agent chat in the main column (not a sidebar). */
+export const ChatHistoryMainSection = styled.section`
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 0;
+  scroll-margin-top: 3.5rem;
+`
+
+/** Mobile: full-screen overlay — slides in from the left. */
+export const ChatHistoryMobileRoot = styled.div<{ $open: boolean }>`
+  @media (min-width: 640px) {
+    display: none;
+  }
+
+  @media (max-width: 639.98px) {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: ${(p) => (p.$open ? "auto" : "none")};
+  }
+`
+
+export const ChatHistoryMobileBackdrop = styled.button.attrs({ type: "button" })<{
+  $visible: boolean
+}>`
+  @media (min-width: 640px) {
+    display: none;
+  }
+
+  @media (max-width: 639.98px) {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    background: rgb(0 0 0 / 42%);
+    opacity: ${(p) => (p.$visible ? 1 : 0)};
+    transition: opacity 0.22s ease;
+    pointer-events: ${(p) => (p.$visible ? "auto" : "none")};
+  }
+`
+
+export const ChatHistoryMobilePanel = styled.div<{ $open: boolean }>`
+  @media (min-width: 640px) {
+    display: none;
+  }
+
+  @media (max-width: 639.98px) {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: 100%;
+    max-width: 100vw;
+    flex-direction: column;
+    background: var(--background);
+    box-shadow: 8px 0 32px rgb(0 0 0 / 12%);
+    transform: translateX(${(p) => (p.$open ? "0" : "-100%")});
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+`
+
+export const ChatHistoryMobileHeader = styled.div`
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
+`
+
+export const ChatHistoryMobileTitle = styled.span`
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+`
+
+export const ChatHistoryCloseButton = styled.button.attrs({ type: "button" })`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+
+  & > svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+`
+
+export const ChatHistoryMobileScroll = styled.div`
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem;
+  -webkit-overflow-scrolling: touch;
+`
+
+/** Opens history drawer on small screens; scrolls to in-page history on desktop. */
+export const ChatHistoryOpenButton = styled.button.attrs({ type: "button" })`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  height: 2rem;
+  padding: 0 0.55rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: color-mix(in oklab, var(--muted) 40%, transparent);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+
+  &:hover {
+    background: color-mix(in oklab, var(--muted) 65%, transparent);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+
+  & > svg {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
 `
 
 export const PreviewFrame = styled.div`
@@ -429,52 +606,252 @@ export const TabsPanelComments = styled(TabsContent).attrs({
 
 /** Mock-only: team lead activity (thinking, files, trace) above the thread. */
 export const MockAgentActivity = styled.div`
-  margin-bottom: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  border-radius: var(--radius-lg);
+  gap: 0.875rem;
+  min-width: 0;
+`
+
+/** Wrapper for the trace stream (no card chrome — content flows flush with the column). */
+export const MockAgentChatSurface = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`
+
+/** Cursor-style row for a past user prompt — icon + single-line label (light). */
+export const MockAgentUserInputRow = styled.div<{ $highlight?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  margin: 0;
+  border-radius: var(--radius-md);
+  background: ${(p) =>
+    p.$highlight
+      ? "color-mix(in oklab, var(--foreground) 5%, transparent)"
+      : "transparent"};
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: color-mix(in oklab, var(--foreground) 6%, transparent);
+  }
+`
+
+export const MockAgentUserInputText = styled.span`
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`
+
+export const UserInputGlyphGrid = styled.span`
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 4px 4px;
+  grid-template-rows: 4px 4px;
+  gap: 3px;
+  width: 0.85rem;
+  height: 0.85rem;
+  color: oklch(0.45 0.12 200);
 
   .dark & {
-    background: color-mix(in oklab, var(--muted) 40%, var(--card));
+    color: oklch(0.72 0.1 200);
   }
+
+  & > span {
+    display: block;
+    border-radius: 1px;
+    background: currentColor;
+    opacity: 0.85;
+  }
+`
+
+export const UserInputGlyphDot = styled.span<{ $tone?: "accent" | "muted" }>`
+  flex-shrink: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: 0 0.2rem;
+  border-radius: 50%;
+  background: ${(p) =>
+    p.$tone === "accent"
+      ? "oklch(0.58 0.14 195)"
+      : "color-mix(in oklab, var(--muted-foreground) 55%, transparent)"};
 `
 
 export const MockAgentTraceStream = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.875rem;
   max-height: min(70vh, 28rem);
   overflow: auto;
-  padding-right: 0.15rem;
+  padding: 0;
+  min-width: 0;
+
+  /* Full workspace chat in main column / drawer: grow with page (or outer scroll). */
+  ${MockAgentChatSurface} & {
+    max-height: none;
+    overflow: visible;
+  }
 `
 
-export const MockAgentUserLine = styled.p`
+export const ChatHistoryRevertBanner = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--foreground);
+`
+
+export const ChatHistoryRevertBannerText = styled.p`
   margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
+  flex: 1 1 12rem;
+  min-width: 0;
   color: var(--muted-foreground);
+`
+
+export const ChatHistoryRestoreFullButton = styled.button.attrs({ type: "button" })`
+  flex-shrink: 0;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--background);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: color-mix(in oklab, var(--foreground) 6%, transparent);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+`
+
+/** One trace block + optional revert control on user prompts (mock checkpoint). */
+export const MockTraceRevertRow = styled.div<{
+  $activeCutoff?: boolean
+  $alignCenter?: boolean
+}>`
+  display: flex;
+  align-items: ${(p) => (p.$alignCenter ? "center" : "flex-start")};
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-radius: var(--radius-sm);
+
+  ${(p) =>
+    p.$activeCutoff &&
+    css`
+      background: color-mix(in oklab, var(--foreground) 5%, transparent);
+      padding: 0.45rem 0.4rem 0.45rem 0.5rem;
+      margin: 0 -0.35rem 0 -0.45rem;
+    `}
+`
+
+export const MockTraceRevertRowMain = styled.div`
+  flex: 1 1 0;
+  min-width: 0;
+`
+
+export const MockTraceRevertIconButton = styled.button.attrs({ type: "button" })`
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0.35rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
+  background: color-mix(in oklab, var(--muted) 45%, var(--background));
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+
+  &:hover {
+    background: color-mix(in oklab, var(--foreground) 7%, transparent);
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--foreground) 14%, transparent);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+
+  & > svg {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .dark & {
+    background: color-mix(in oklab, var(--muted) 25%, transparent);
+    border-color: color-mix(in oklab, var(--border) 45%, transparent);
+  }
+`
+
+/** Mobile History drawer: dense prompts-only list (icon + truncated label per row). */
+export const MockPromptTimelineStream = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  padding: 0;
+
+  & ${MockTraceRevertRow} {
+    padding: 0.08rem 0;
+  }
+
+  & ${MockAgentUserInputRow} {
+    padding: 0.38rem 0.45rem;
+    font-size: 0.8125rem;
+  }
 `
 
 export const MockAgentThoughtElapsed = styled.p`
   margin: 0;
   font-size: 0.8125rem;
-  line-height: 1.35rem;
+  line-height: 1.45rem;
   color: var(--muted-foreground);
 `
 
 export const MockAgentTraceLine = styled.p`
   margin: 0;
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.55;
   color: color-mix(in oklab, var(--foreground) 88%, transparent);
 `
 
 /** Command lines — same visual weight as trace text (no card chrome). */
 export const MockAgentCommandBlock = styled.div`
   margin: 0;
+  padding: 0.15rem 0;
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.55;
   color: color-mix(in oklab, var(--foreground) 88%, transparent);
   white-space: pre-wrap;
   word-break: break-word;
@@ -482,6 +859,7 @@ export const MockAgentCommandBlock = styled.div`
   code {
     display: block;
     margin: 0;
+    padding: 0.2rem 0;
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
@@ -493,6 +871,7 @@ export const MockAgentCommandBlock = styled.div`
 `
 
 export const MockAgentDiffWrap = styled.div`
+  margin: 0.15rem 0;
   border-radius: 0.5rem;
   border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
   overflow: hidden;
@@ -504,7 +883,7 @@ export const MockAgentDiffHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.45rem 0.65rem;
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--foreground);
@@ -533,14 +912,15 @@ export const MockAgentDiffStats = styled.span`
 `
 
 export const MockAgentDiffBody = styled.div`
+  padding: 0.35rem 0;
   font-size: 0.8125rem;
-  line-height: 1.5;
+  line-height: 1.55;
 `
 
 export const MockAgentDiffRow = styled.div<{ $variant: "add" | "remove" | "context" }>`
   display: flex;
-  gap: 0.25rem;
-  padding: 0.1rem 0.35rem;
+  gap: 0.35rem;
+  padding: 0.22rem 0.5rem;
 
   ${(p) =>
     p.$variant === "add" &&
@@ -566,17 +946,12 @@ export const MockAgentDiffRowPrefix = styled.span`
   opacity: 0.65;
 `
 
-/** Collapsed “explored files” summary — off-gray shell; expand for ↳ lines. */
+/** “Explored files” summary — ghost (no card chrome); expand for path lines. */
 export const MockExploreBlock = styled.div`
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, var(--muted) 48%, var(--background));
-  border: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
-  overflow: hidden;
-
-  .dark & {
-    background: color-mix(in oklab, var(--muted) 26%, var(--card));
-    border-color: color-mix(in oklab, var(--border) 42%, transparent);
-  }
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
 `
 
 export const MockExploreToggle = styled.button`
@@ -585,9 +960,9 @@ export const MockExploreToggle = styled.button`
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.45rem 0.65rem;
+  padding: 0.35rem 0;
   margin: 0;
-  border: 0;
+  border: none;
   background: transparent;
   cursor: pointer;
   text-align: left;
@@ -596,14 +971,17 @@ export const MockExploreToggle = styled.button`
   line-height: 1.4;
   font-weight: 500;
   font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
 
   &:hover {
-    background: color-mix(in oklab, var(--foreground) 5%, transparent);
+    background: transparent;
+    color: var(--foreground);
   }
 
   &:focus-visible {
     outline: 2px solid var(--ring);
-    outline-offset: -2px;
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 `
 
@@ -626,19 +1004,20 @@ export const MockExploreChevron = styled.span<{ $open: boolean }>`
 `
 
 export const MockExplorePanel = styled.div`
-  padding: 0 0.65rem 0.55rem 0.75rem;
-  border-top: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+  margin-top: 0.5rem;
+  padding: 0 0 0.25rem 0;
+  border: none;
 `
 
 export const MockExploreDetailLine = styled.p`
   margin: 0;
-  padding: 0.12rem 0;
+  padding: 0.2rem 0;
   font-size: 0.8125rem;
-  line-height: 1.45;
+  line-height: 1.5;
   color: color-mix(in oklab, var(--foreground) 86%, transparent);
 
   &:first-child {
-    padding-top: 0.35rem;
+    padding-top: 0.15rem;
   }
 `
 

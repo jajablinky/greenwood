@@ -3,15 +3,18 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type FormEvent,
   type KeyboardEvent,
 } from "react"
 import {
   ArrowLeftIcon,
   ArrowUpIcon,
+  ClockIcon,
   MessageSquare,
   Send,
   ShuffleIcon,
+  XIcon,
 } from "assets/icons"
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
 
@@ -52,7 +55,7 @@ import { useProjects } from "providers/ProjectsProvider"
 import { useToaster } from "providers/ToasterProvider"
 
 import { AppPreviewPhoneExpand } from "components/molecules/AppPreviewPhoneExpand/AppPreviewPhoneExpand"
-import { MockAgentTraceList } from "./MockAgentTraceList"
+import { MockAgentPromptTimeline, MockAgentTraceList } from "./MockAgentTraceList"
 import * as S from "./styles"
 
 type ViewerVote = "up" | "down" | null
@@ -77,7 +80,32 @@ type AppDetailLocationState = {
   scrollToRemixes?: boolean
 } | null
 
+const MOBILE_HEADER_MQ = "(max-width: 639.98px)"
+
+/** Scroll target for desktop “History” header control (drawer is mobile-only). */
+const WORKSPACE_HISTORY_SECTION_ID = "workspace-history"
+
+function subscribeMobileHeader(cb: () => void) {
+  const mq = window.matchMedia(MOBILE_HEADER_MQ)
+  mq.addEventListener("change", cb)
+  return () => mq.removeEventListener("change", cb)
+}
+
+function getMobileHeaderSnapshot() {
+  return window.matchMedia(MOBILE_HEADER_MQ).matches
+}
+
+function getMobileHeaderServerSnapshot() {
+  return false
+}
+
 export function AppDetailPage() {
+  const isMobileHeader = useSyncExternalStore(
+    subscribeMobileHeader,
+    getMobileHeaderSnapshot,
+    getMobileHeaderServerSnapshot,
+  )
+
   const { feedId = "" } = useParams<{ feedId: string }>()
   const decodedId = decodeURIComponent(feedId)
   const location = useLocation()
@@ -135,10 +163,62 @@ export function AppDetailPage() {
   }, [ouroSlug])
 
   const [remixAsideOpen, setRemixAsideOpen] = useState(false)
+  /** Mobile: full-screen chat history drawer (agent trace for this app). */
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(false)
+  /** Mock trace: hide entries after this index (revert checkpoint). */
+  const [traceRevertEndIndex, setTraceRevertEndIndex] = useState<number | null>(
+    null,
+  )
 
   useEffect(() => {
     setRemixAsideOpen(false)
   }, [decodedId])
+
+  useEffect(() => {
+    setChatHistoryOpen(false)
+  }, [decodedId])
+
+  useEffect(() => {
+    setTraceRevertEndIndex(null)
+  }, [decodedId])
+
+  useEffect(() => {
+    if (!chatHistoryOpen) {
+      return
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setChatHistoryOpen(false)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [chatHistoryOpen])
+
+  useEffect(() => {
+    if (typeof document === "undefined" || !chatHistoryOpen) {
+      return
+    }
+    const mq = window.matchMedia("(max-width: 639.98px)")
+    if (!mq.matches) {
+      return
+    }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [chatHistoryOpen])
+
+  const onHistoryHeaderClick = useCallback(() => {
+    if (isMobileHeader) {
+      setChatHistoryOpen(true)
+    } else {
+      document
+        .getElementById(WORKSPACE_HISTORY_SECTION_ID)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [isMobileHeader])
 
   useEffect(() => {
     const st = location.state as AppDetailLocationState
@@ -497,17 +577,85 @@ export function AppDetailPage() {
     return mockTrace
   }, [commentTree, mockTrace, remixEntries.length, remixBarLeadText])
 
+  const showChatHistoryPanel =
+    showMockAgentPanel && mockTraceForPanel.length > 0
+
+  const chatHistoryContent = showChatHistoryPanel ? (
+    <S.MockAgentChatSurface>
+      <S.MockAgentActivity aria-live="polite">
+        <MockAgentTraceList
+          entries={mockTraceForPanel}
+          visibleEndIndex={traceRevertEndIndex}
+          onRevertToIndex={setTraceRevertEndIndex}
+          onRestoreFullHistory={() => setTraceRevertEndIndex(null)}
+        />
+      </S.MockAgentActivity>
+    </S.MockAgentChatSurface>
+  ) : null
+
+  /** Mobile drawer: prompts-only timeline (full trace stays in the main column). */
+  const chatHistoryDrawerContent = showChatHistoryPanel ? (
+    <S.MockAgentChatSurface>
+      <S.MockAgentActivity aria-live="polite">
+        <MockAgentPromptTimeline
+          entries={mockTraceForPanel}
+          visibleEndIndex={traceRevertEndIndex}
+          onRevertToIndex={setTraceRevertEndIndex}
+          onRestoreFullHistory={() => setTraceRevertEndIndex(null)}
+        />
+      </S.MockAgentActivity>
+    </S.MockAgentChatSurface>
+  ) : null
+
   return (
     <S.Page>
       <S.StickyHeader>
         <S.HeaderInner>
-          <S.BackLink to="/">
-            <S.BackIcon>
-              <ArrowLeftIcon />
-            </S.BackIcon>
-            Feed
-          </S.BackLink>
+          <S.HeaderSlot $align="start">
+            {showChatHistoryPanel && isMobileHeader ? (
+              <S.ChatHistoryOpenButton
+                type="button"
+                aria-expanded={chatHistoryOpen}
+                aria-controls="app-chat-history-drawer"
+                onClick={onHistoryHeaderClick}
+              >
+                <ClockIcon strokeWidth={2} aria-hidden />
+                History
+              </S.ChatHistoryOpenButton>
+            ) : (
+              <S.BackLink to="/">
+                <S.BackIcon>
+                  <ArrowLeftIcon />
+                </S.BackIcon>
+                Feed
+              </S.BackLink>
+            )}
+          </S.HeaderSlot>
           <S.HeaderTitle>{title}</S.HeaderTitle>
+          <S.HeaderSlot $align="end">
+            {showChatHistoryPanel && isMobileHeader ? (
+              <S.BackLink to="/">
+                <S.BackIcon>
+                  <ArrowLeftIcon />
+                </S.BackIcon>
+                Feed
+              </S.BackLink>
+            ) : showChatHistoryPanel ? (
+              <S.ChatHistoryOpenButton
+                type="button"
+                aria-expanded={isMobileHeader ? chatHistoryOpen : undefined}
+                aria-controls={
+                  isMobileHeader
+                    ? "app-chat-history-drawer"
+                    : WORKSPACE_HISTORY_SECTION_ID
+                }
+                onClick={onHistoryHeaderClick}
+              >
+                <ClockIcon strokeWidth={2} aria-hidden />
+                History
+              </S.ChatHistoryOpenButton>
+            ) : null}
+          </S.HeaderSlot>
         </S.HeaderInner>
       </S.StickyHeader>
 
@@ -635,6 +783,15 @@ export function AppDetailPage() {
               )}
             </S.HeroMetaRow>
 
+            {showChatHistoryPanel ? (
+              <S.ChatHistoryMainSection
+                id={WORKSPACE_HISTORY_SECTION_ID}
+                aria-label="Workspace chat"
+              >
+                {chatHistoryContent}
+              </S.ChatHistoryMainSection>
+            ) : null}
+
             {/*
               Detail tabs (Holders / Activity / Details) — restore when needed.
               <S.DetailTabs>…</S.DetailTabs>
@@ -687,11 +844,6 @@ export function AppDetailPage() {
                     </S.RemixAsideList>
                   ) : null}
                 </S.RemixThreadWrap>
-              ) : null}
-              {showMockAgentPanel && mockTraceForPanel.length > 0 ? (
-                <S.MockAgentActivity aria-live="polite">
-                  <MockAgentTraceList entries={mockTraceForPanel} />
-                </S.MockAgentActivity>
               ) : null}
               <S.DetailChatComposerSheet $workspace={ouroSlug != null}>
                 <form
@@ -793,6 +945,38 @@ export function AppDetailPage() {
           </S.PrimaryColumn>
         </S.DetailGrid>
       </S.DetailMain>
+
+      {showChatHistoryPanel ? (
+        <S.ChatHistoryMobileRoot
+          $open={chatHistoryOpen}
+          aria-hidden={!chatHistoryOpen}
+        >
+          <S.ChatHistoryMobileBackdrop
+            $visible={chatHistoryOpen}
+            aria-label="Close history"
+            onClick={() => setChatHistoryOpen(false)}
+          />
+          <S.ChatHistoryMobilePanel
+            id="app-chat-history-drawer"
+            $open={chatHistoryOpen}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Workspace prompt history"
+          >
+            <S.ChatHistoryMobileHeader>
+              <S.ChatHistoryMobileTitle>History</S.ChatHistoryMobileTitle>
+              <S.ChatHistoryCloseButton
+                type="button"
+                aria-label="Close history"
+                onClick={() => setChatHistoryOpen(false)}
+              >
+                <XIcon strokeWidth={2} aria-hidden />
+              </S.ChatHistoryCloseButton>
+            </S.ChatHistoryMobileHeader>
+            <S.ChatHistoryMobileScroll>{chatHistoryDrawerContent}</S.ChatHistoryMobileScroll>
+          </S.ChatHistoryMobilePanel>
+        </S.ChatHistoryMobileRoot>
+      ) : null}
     </S.Page>
   )
 }

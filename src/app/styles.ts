@@ -36,9 +36,7 @@ const cssVariables = css`
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
-    /** Shared horizontal gutter for main-column content (feed cards, profile
-        page, etc). Tightens on mobile so content doesn't hug the viewport edge
-        but still uses full width. */
+    /** Shared horizontal gutter for main-column content (feed cards, profile, etc.). */
     --content-padding-x: 1rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -119,7 +117,8 @@ const cssVariables = css`
 
   @media (max-width: 639.98px) {
     :root {
-      --content-padding-x: 0.75rem;
+      /* Comfortable side inset for feed, profile, and other full-width columns. */
+      --content-padding-x: 1rem;
     }
   }
 `

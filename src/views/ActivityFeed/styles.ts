@@ -19,8 +19,8 @@ export const HeaderInner = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  /* Align with feed card inner edge (avatar column): matches --feed-card-padding-x. */
-  padding: 0.375rem 0.25rem;
+  /* Align with feed main gutter (matches FeedMain / FeedSortBar). */
+  padding: 0.375rem var(--content-padding-x);
   @media (min-width: 640px) {
     max-width: 40rem;
     /* Same inset as feed cards: FeedMain 0.75rem + FeedCard 0.5rem (see FeedItemArticle). */
@@ -134,11 +134,7 @@ export const FeedMain = styled.main`
   z-index: 0;
   margin-inline: auto;
   max-width: 48rem;
-  padding: 0.75rem 0 4rem;
-
-  @media (max-width: 639.98px) {
-    padding-bottom: 4rem;
-  }
+  padding: 0.75rem var(--content-padding-x) 4rem;
 
   @media (min-width: 640px) {
     max-width: 40rem;
@@ -169,8 +165,8 @@ export const FeedItemArticle = styled.article`
   /* Horizontal space between avatar and title row (keep tight; thread indent uses this). */
   --feed-avatar-gap: 0.25rem;
   --feed-thread-indent: calc(var(--feed-avatar-size) + var(--feed-avatar-gap));
-  /* Inner card gutter — kept tight so the avatar sits near the viewport edge on mobile. */
-  --feed-card-padding-x: 0.25rem;
+  /* Inner card gutter; outer inset is FeedMain’s horizontal padding on mobile. */
+  --feed-card-padding-x: 0.375rem;
 
   display: flex;
   flex-direction: column;
@@ -841,7 +837,7 @@ export const FeedSortBar = styled.div`
   width: 100%;
   max-width: 48rem;
   gap: 1.25rem;
-  padding: 0.2rem 0.25rem 0;
+  padding: 0.2rem var(--content-padding-x) 0;
   border-bottom: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
 
   @media (min-width: 640px) {
