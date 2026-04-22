@@ -9,6 +9,7 @@ import {
   InlineComposerFab,
   InlineComposerTextarea,
 } from "components/molecules/CommentThread/styles"
+import { MOBILE_TAB_BAR_STACK_HEIGHT } from "components/molecules/MobileTabBar/styles"
 
 const mobileOuroDockFab = css`
   width: 2.5rem;
@@ -190,6 +191,31 @@ export const TitleRow = styled.div`
   @media (min-width: 640px) {
     column-gap: 0.625rem;
   }
+`
+
+/** Title + optional remix toggle on one line (toggle moved up from thread bar). */
+export const HeroTitleLine = styled.div`
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  @media (min-width: 640px) {
+    gap: 0.75rem;
+  }
+`
+
+export const HeroTitleLead = styled.div`
+  flex: 1 1 0%;
+  min-width: 0;
+`
+
+export const HeroRemixToggleSlot = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 `
 
 export const TitleH1 = styled.h1`
@@ -414,42 +440,6 @@ export const MockAgentActivity = styled.div`
   }
 `
 
-export const MockAgentPhaseRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-`
-
-export const MockAgentPhaseDot = styled.span<{ $pulse?: boolean }>`
-  display: inline-block;
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 999px;
-  background: var(--ring);
-
-  ${(p) =>
-    p.$pulse &&
-    css`
-      animation: mock-pulse 1.1s ease-in-out infinite;
-      @keyframes mock-pulse {
-        0%,
-        100% {
-          opacity: 0.35;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 1;
-          transform: scale(1.15);
-        }
-      }
-    `}
-`
-
 export const MockAgentTraceStream = styled.div`
   display: flex;
   flex-direction: column;
@@ -576,60 +566,79 @@ export const MockAgentDiffRowPrefix = styled.span`
   opacity: 0.65;
 `
 
-export const MockAgentReviewRow = styled.div`
+/** Collapsed “explored files” summary — off-gray shell; expand for ↳ lines. */
+export const MockExploreBlock = styled.div`
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--muted) 48%, var(--background));
+  border: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
+  overflow: hidden;
+
+  .dark & {
+    background: color-mix(in oklab, var(--muted) 26%, var(--card));
+    border-color: color-mix(in oklab, var(--border) 42%, transparent);
+  }
+`
+
+export const MockExploreToggle = styled.button`
   display: flex;
-  flex-wrap: wrap;
+  width: 100%;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  margin-top: 0.25rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
-`
-
-export const MockAgentReviewBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: 0.5rem;
-  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
-  padding: 0.35rem 0.6rem;
-  font-size: 0.875rem;
+  padding: 0.45rem 0.65rem;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.4;
   font-weight: 500;
-  color: var(--foreground);
-  background: color-mix(in oklab, var(--background) 85%, var(--muted));
-  cursor: default;
+  font-family: inherit;
 
-  .dark & {
-    background: color-mix(in oklab, var(--card) 70%, var(--muted));
+  &:hover {
+    background: color-mix(in oklab, var(--foreground) 5%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
   }
 `
 
-export const MockAgentReviewStats = styled.span`
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: oklch(0.52 0.14 145);
-
-  .dark & {
-    color: oklch(0.72 0.12 145);
-  }
+export const MockExploreSummary = styled.span`
+  flex: 1;
+  min-width: 0;
 `
 
-export const MockAgentCommitSplit = styled.button`
+export const MockExploreChevron = styled.span<{ $open: boolean }>`
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  border-radius: 0.5rem;
-  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
-  padding: 0.35rem 0.6rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--foreground);
-  background: color-mix(in oklab, var(--foreground) 8%, transparent);
-  cursor: default;
+  justify-content: center;
+  width: 1.25rem;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.65;
+  transition: transform 140ms ease;
+  transform: rotate(${({ $open }) => ($open ? 90 : 0)}deg);
+`
 
-  span:last-child {
-    font-size: 0.75rem;
-    opacity: 0.7;
+export const MockExplorePanel = styled.div`
+  padding: 0 0.65rem 0.55rem 0.75rem;
+  border-top: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+`
+
+export const MockExploreDetailLine = styled.p`
+  margin: 0;
+  padding: 0.12rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--foreground) 86%, transparent);
+
+  &:first-child {
+    padding-top: 0.35rem;
   }
 `
 
@@ -973,7 +982,7 @@ export const RemixAsideToggleCount = styled.span`
   }
 `
 
-/** Under hero: first thread line (left) + remix toggle (right). Anchor for #remixes. */
+/** Under hero: first thread snippet; remix toggle lives on `HeroTitleLine`. Anchor for #remixes. */
 export const RemixThreadWrap = styled.div`
   min-width: 0;
   scroll-margin-top: 6rem;
@@ -987,33 +996,39 @@ export const RemixThreadWrap = styled.div`
 `
 
 export const RemixThreadBar = styled.div`
-  display: flex;
   width: 100%;
   min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
 `
 
 export const RemixThreadBarLead = styled.div`
   min-width: 0;
-  flex: 1 1 0%;
 `
 
-/** First root comment or mock “You · …” line — aligns with thread column under the app. */
+/** First root comment or mock user prompt — matches thread body size; boxed so it reads as “your message”. */
 export const RemixThreadFirstSnippet = styled.p`
   margin: 0;
-  font-size: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
   line-height: 1.45;
-  color: var(--muted-foreground);
+  font-weight: 400;
+  color: var(--foreground);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  background: color-mix(in oklab, var(--card) 92%, var(--background));
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-`
+  -webkit-line-clamp: 3;
 
-export const RemixThreadBarTrail = styled.div`
-  flex-shrink: 0;
+  .dark & {
+    background: color-mix(in oklab, var(--card) 55%, var(--muted));
+    border-color: color-mix(in oklab, var(--border) 70%, transparent);
+  }
+
+  @media (min-width: 640px) {
+    line-height: 1.5;
+    padding: 0.55rem 0.75rem;
+  }
 `
 
 export const RemixAsideList = styled.ul`
@@ -1136,8 +1151,8 @@ export const DetailChatComposerSheet = styled.div<{ $workspace?: boolean }>`
         z-index: 41;
         left: 0;
         right: 0;
-        bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
-        padding: 0.5rem 0.75rem 0.5rem;
+        bottom: ${MOBILE_TAB_BAR_STACK_HEIGHT};
+        padding: 0.5rem 0.75rem 0;
         border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
         background: color-mix(in oklab, var(--card) 94%, var(--background));
         backdrop-filter: blur(16px);

@@ -11,22 +11,25 @@ const tabular = css`
 `
 
 export const HeaderInner = styled.div`
+  box-sizing: border-box;
   margin-inline: auto;
   display: flex;
+  width: 100%;
   max-width: 48rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  /* Match feed card inner edge: same horizontal pad as FeedCard (narrow). */
-  padding: 0.375rem 0.75rem;
+  /* Align with feed card inner edge (avatar column): matches --feed-card-padding-x. */
+  padding: 0.375rem 0.25rem;
   @media (min-width: 640px) {
     max-width: 40rem;
-    /* FeedMain inline (1.5rem) + FeedCard pad-x (1rem) — aligns brand with post copy. */
-    padding: 0.5rem 2.5rem;
+    /* Same inset as feed cards: FeedMain 0.75rem + FeedCard 0.5rem (see FeedItemArticle). */
+    padding: 0.5rem 1.25rem;
   }
 `
 
 export const HeaderBrandWrap = styled.div`
+  flex-shrink: 0;
   min-width: 0;
 `
 
@@ -50,8 +53,8 @@ export const HeaderActions = styled.div`
   gap: 0.5rem;
 `
 
-/** Desktop: floating + — Create was removed from the sticky header. */
-export const FeedCreateFab = styled.button`
+/** Desktop: floating Create button — hidden on mobile, where the tab bar + handles it. */
+export const FeedCreateFab = styled(Button)`
   display: none;
 
   @media (min-width: 640px) {
@@ -60,51 +63,6 @@ export const FeedCreateFab = styled.button`
     right: 1.25rem;
     bottom: 1.25rem;
     z-index: 45;
-    box-sizing: border-box;
-    width: 3.5rem;
-    height: 3.5rem;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    border-radius: 9999px;
-    border: 1px solid var(--border);
-    background: color-mix(in oklab, var(--foreground) 10%, var(--muted));
-    color: var(--foreground);
-    cursor: pointer;
-    box-shadow: none;
-    transition:
-      background-color 150ms ease,
-      transform 150ms ease;
-
-    &:hover {
-      background: color-mix(in oklab, var(--foreground) 14%, var(--muted));
-    }
-
-    &:active {
-      transform: scale(0.96);
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow:
-        0 0 0 2px var(--background),
-        0 0 0 4px var(--ring);
-    }
-
-    & svg {
-      width: 1.375rem;
-      height: 1.375rem;
-    }
-
-    .dark & {
-      border-color: var(--border);
-      background: color-mix(in oklab, var(--muted) 78%, var(--foreground));
-      box-shadow: none;
-    }
-
-    .dark &:hover {
-      background: color-mix(in oklab, var(--muted) 68%, var(--foreground));
-    }
   }
 `
 
@@ -115,8 +73,10 @@ export const HeaderConnectWalletButton = styled(ConnectWalletButton).attrs({
   && {
     height: auto;
     min-height: 0;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8125rem;
+    flex-shrink: 0;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
     border-radius: var(--radius-md);
   }
 `
@@ -182,7 +142,8 @@ export const FeedMain = styled.main`
 
   @media (min-width: 640px) {
     max-width: 40rem;
-    padding: 1rem 1.5rem 4rem;
+    /* Tighter than 1.5rem so the feed column lines up with the app preview edge. */
+    padding: 1rem 0.75rem 4rem;
   }
 `
 
@@ -203,24 +164,25 @@ export const FeedList = styled.ol`
 `
 
 export const FeedItemArticle = styled.article`
-  /* Align thread / composer with the main column beside the card avatar (Twitter-style). */
-  --feed-avatar-size: 2.5rem;
-  /* Tight space between avatar rail and preview (was 0.75rem). */
-  --feed-avatar-gap: 0.5rem;
+  /* Tight to one title line; prompt sits on the next grid row, not beside the avatar. */
+  --feed-avatar-size: 1.75rem;
+  /* Horizontal space between avatar and title row (keep tight; thread indent uses this). */
+  --feed-avatar-gap: 0.25rem;
   --feed-thread-indent: calc(var(--feed-avatar-size) + var(--feed-avatar-gap));
-  /* Must match FeedCard horizontal padding — thread sits outside the card. */
-  --feed-card-padding-x: 1rem;
+  /* Inner card gutter — kept tight so the avatar sits near the viewport edge on mobile. */
+  --feed-card-padding-x: 0.25rem;
 
   display: flex;
   flex-direction: column;
   gap: 0;
 
   @media (max-width: 639.98px) {
-    --feed-card-padding-x: 0.75rem;
+    --feed-avatar-gap: 0.15rem;
   }
 
   @media (min-width: 640px) {
-    --feed-avatar-size: 3rem;
+    --feed-avatar-size: 2rem;
+    --feed-card-padding-x: 0.5rem;
   }
 `
 
@@ -271,11 +233,7 @@ export const FeedCard = styled.div`
   cursor: pointer;
   overflow: hidden;
   border-radius: 0;
-  padding: 0.75rem 1rem;
-
-  @media (max-width: 639.98px) {
-    padding: 0.75rem 0.75rem;
-  }
+  padding: 0.75rem var(--feed-card-padding-x, var(--content-padding-x));
 `
 
 export const CardOverlayLink = styled(Link)`
@@ -293,40 +251,46 @@ export const CardOverlayLink = styled(Link)`
   }
 `
 
-/** Listing vote stack — full avatar column width so controls share the avatar’s vertical center line. */
-export const FeedListingVoteCluster = styled.div`
-  display: flex;
-  grid-column: 1;
-  grid-row: 2;
-  box-sizing: border-box;
+/** Vote cluster — horizontal `↑ score ↓` (footer row, right-aligned). */
+export const FeedVoteCluster = styled.div`
+  display: inline-flex;
   flex-shrink: 0;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  justify-self: start;
-  align-self: center;
-  gap: 0.25rem;
-  width: var(--feed-avatar-size);
-  min-width: 0;
-  padding-right: 8px;
+  gap: 0.125rem;
   pointer-events: auto;
 
   @media (min-width: 640px) {
-    gap: 0.3125rem;
-    padding-right: 18px;
+    gap: 0.25rem;
   }
 `
 
+/** Comment · remix · view app — action bar, left (below the preview). */
+export const FeedSocialActionCluster = styled.div`
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.125rem;
+  pointer-events: auto;
+
+  @media (min-width: 640px) {
+    gap: 0.25rem;
+  }
+`
+
+/* Spans the full grid row (col 1 → col end) so the preview drops the avatar-
+   column indent and fills the card's content area on every viewport. */
 export const CardPreviewFrame = styled.div`
   position: relative;
   z-index: 10;
-  grid-column: 2;
-  grid-row: 2;
+  grid-column: 1 / -1;
+  grid-row: 3;
   min-width: 0;
   width: 100%;
   min-height: 80px;
   overflow: hidden;
   border-radius: var(--radius-xl);
+  /* Extra air between subtitle row and the embed; row-gap alone is quite tight. */
+  margin-top: 0.2rem;
   pointer-events: none;
 `
 
@@ -342,44 +306,44 @@ export const CardPreviewIframe = styled.iframe`
 `
 
 /**
- * Grid: col1 = avatar + vote (same horizontal line as avatar); col2 = copy, preview, actions.
- * Vote sits in the avatar column, centered to the preview row — preview stays wider.
+ * Grid: row1 = avatar | title line; row2 = prompt (col2 only). Preview + bar follow.
  */
 export const CardTweetSection = styled.div`
   position: relative;
   z-index: 10;
-  display: grid;
   grid-template-columns: var(--feed-avatar-size) minmax(0, 1fr);
   align-items: start;
-  column-gap: var(--feed-avatar-gap);
-  row-gap: 0.5rem;
+  /* Tight title→subtitle; preview/action rows rely on the same value + padding on iframe bar. */
   pointer-events: none;
-
-  @media (max-width: 639.98px) {
-    column-gap: 0.375rem;
-    row-gap: 0.375rem;
-  }
 `
 
 export const FeedTweetBody = styled.div`
-  display: flex;
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
-  flex-direction: column;
-  gap: 0.125rem;
   pointer-events: auto;
 `
 
-/** Time + overflow menu; sits top-right on the app title row. */
-export const FeedTweetPromptAside = styled.div`
-  display: flex;
+/** Inline `· {time}` pair that sits next to the title. `display: inline-flex`
+    with `nowrap` keeps the separator glued to the time when the title wraps. */
+export const FeedTweetTimeInline = styled.span`
+  display: inline-flex;
   flex-shrink: 0;
-  align-items: center;
-  gap: 0.125rem;
+  align-items: baseline;
+  gap: 0.25rem;
+  white-space: nowrap;
+`
+
+export const FeedTweetTimeSep = styled.span`
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1;
 `
 
 export const FeedTweetPrompt = styled.p`
+  display: none;
+  grid-column: 2;
+  grid-row: 2;
   margin: 0;
   min-width: 0;
   font-size: 0.8125rem;
@@ -387,10 +351,10 @@ export const FeedTweetPrompt = styled.p`
   font-weight: 400;
   color: var(--muted-foreground);
   overflow-wrap: anywhere;
-  display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  pointer-events: auto;
 
   @media (max-width: 639.98px) {
     font-size: 0.75rem;
@@ -403,28 +367,34 @@ export const FeedTweetPrompt = styled.p`
   }
 `
 
-/** App title + optional status (leading) and time + overflow (trailing). */
+/** App title + status + time (leading) and absolutely positioned overflow (top right). */
 export const FeedTweetAppRow = styled.div`
+  position: relative;
   display: flex;
   min-width: 0;
+  /* flex-start: title, time, and overflow share the same top edge as the
+     avatar. (center would vertically center a one-line title in the 2rem menu.) */
   align-items: flex-start;
-  justify-content: space-between;
   gap: 0.5rem;
 `
 
-/** Title + status pill; shares the top row with {@link FeedTweetPromptAside}. */
+/** Title + status pill + inline time; shares the top row with the vote cluster.
+    `flex: 0 1 auto` on the name keeps the time glued to the end of the title
+    instead of stretching across the available space. */
 export const FeedTweetAppLeading = styled.div`
   display: flex;
   min-width: 0;
   flex: 1 1 auto;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.375rem 0.75rem;
+  gap: 0.25rem 0.35rem;
+  /* Room for the absolute ⋮ (2rem) */
+  padding-right: 2.25rem;
 `
 
 export const FeedTweetAppName = styled.span`
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -452,7 +422,7 @@ export const FeedPostOverflowTrigger = styled(Menu.Trigger)`
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  margin: -0.125rem -0.25rem -0.125rem 0;
+  margin: 0;
   padding: 0;
   border: 0;
   border-radius: 9999px;
@@ -530,12 +500,17 @@ export const FeedPostOverflowMenuItemIcon = styled.span`
 export const BuilderAvatarLink = styled(Link)`
   grid-column: 1;
   grid-row: 1;
+  align-self: center;
   justify-self: start;
   line-height: 0;
   border-radius: 9999px;
   text-decoration: none;
   color: inherit;
   outline: none;
+  /* Re-enable events so the avatar opens the profile (and fires the hover
+     preview) instead of the underlying card overlay link. */
+  pointer-events: auto;
+  cursor: pointer;
 
   &:focus-visible {
     box-shadow: 0 0 0 2px var(--ring);
@@ -543,11 +518,13 @@ export const BuilderAvatarLink = styled(Link)`
 `
 
 export const BuilderAvatar = styled(Avatar)`
-  aspect-ratio: 1;
-  width: var(--feed-avatar-size);
-  height: var(--feed-avatar-size);
-  flex-shrink: 0;
-  border-radius: 9999px;
+  && {
+    aspect-ratio: 1;
+    width: var(--feed-avatar-size);
+    height: var(--feed-avatar-size);
+    flex-shrink: 0;
+    border-radius: 9999px;
+  }
 
   &::after {
     border-radius: 9999px;
@@ -556,12 +533,12 @@ export const BuilderAvatar = styled(Avatar)`
 
 export const BuilderAvatarFallback = styled(AvatarFallback)`
   border-radius: inherit;
-  font-size: 0.6875rem;
-  line-height: 1rem;
+  font-size: 0.625rem;
+  line-height: 1;
   font-weight: 600;
 
   @media (min-width: 640px) {
-    font-size: 0.8125rem;
+    font-size: 0.6875rem;
   }
 `
 
@@ -650,80 +627,39 @@ const feedIconOnlySquareCss = css`
   }
 `
 
-/** Icon-only actions (copy / view app). */
-export const FeedActionIconButton = styled(Button)`
-  ${feedGhostToolbarButtonCss};
-  ${feedIconOnlySquareCss};
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-`
-
-/** Icon-only link to app detail (trailing group). */
+/** Icon-only link to app detail. */
 export const FeedViewAppLinkButton = styled(FeedCommentLinkButton)`
   ${feedIconOnlySquareCss};
 `
 
-/** Visible label next to shuffle icon in feed action bar. */
-export const FeedRemixButtonText = styled.span`
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--muted-foreground);
-
-  @media (max-width: 639.98px) {
-    font-size: 0.75rem;
-  }
-
-  @media (min-width: 640px) {
-    font-size: 0.875rem;
-  }
-`
-
-/** Opens create-app flow with this listing as the remix source. */
-export const FeedRemixButton = styled(Button)`
-  ${feedGhostToolbarButtonCss};
-
-  /* Softer than shared toolbar ghost hover — light gray instead of heavier foreground tint. */
-  &:hover:not(:disabled) {
-    background: var(--accent) !important;
-  }
-
-  .dark &:hover:not(:disabled) {
-    background: var(--muted) !important;
-  }
-
-  &:hover:not(:disabled) ${FeedRemixButtonText} {
-    color: var(--foreground);
-  }
-`
-
 /**
- * Comment + copy + view app on the left; remix in `CardActionBarTrailing` on the right.
+ * Footer row: social actions (left) and vote cluster (right). Overflow ⋮ is in
+ * the header row (top right).
  */
 export const CardActionBar = styled.div`
   position: relative;
   z-index: 20;
-  grid-column: 2;
-  grid-row: 3;
+  grid-column: 1 / -1;
+  grid-row: 4;
   display: flex;
   width: 100%;
   max-width: 100%;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 0.5rem;
   padding: 0.125rem 0 0;
   pointer-events: auto;
 `
 
-/** Remix only — `margin-left: auto` pins it to the bar’s trailing edge. */
-export const CardActionBarTrailing = styled.div`
-  display: flex;
+export const CardActionBarOverflow = styled.span`
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-  flex-shrink: 0;
+  pointer-events: auto;
 `
 
 /** Toolbar glyph slot — matches Button’s default `svg { 1rem }` so icons stay centered. */
@@ -845,7 +781,6 @@ export const FeedListingScoreValue = styled(ScoreValue)`
 export const ThreadPanel = styled.div`
   /* Line up with CardTweetSection column 2: card inset + avatar column + gap */
   padding: 0 var(--feed-card-padding-x) 1rem;
-  padding-left: calc(var(--feed-card-padding-x) + var(--feed-thread-indent));
 `
 
 export const ThreadInner = styled.div`
@@ -864,15 +799,27 @@ export const Page = styled.div`
 `
 
 export const StickyHeader = styled.header`
+  /* Approx height of the brand row (padding 0.375 + 0.375 + line-height 1.25) — used to
+     slide just the brand off on mobile while the sort row stays pinned to the top. */
+  --feed-header-brand-height: 2rem;
+
   position: sticky;
   top: 0;
   z-index: 30;
-  border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  border-bottom: none;
   box-shadow: none;
-  /* Solid page background — translucent + blur can read as a hairline under the header */
+  /* Solid page background — keeps the sort row legible while sticky. */
   background: #ffffff;
   .dark & {
     background: var(--background);
+  }
+
+  @media (min-width: 640px) {
+    --feed-header-brand-height: 2.25rem;
   }
 
   @media (max-width: 639.98px) {
@@ -880,7 +827,63 @@ export const StickyHeader = styled.header`
     will-change: transform;
 
     html[data-mobile-chrome-hidden="true"] & {
-      transform: translateY(-100%);
+      /* Hide only the brand row — keep Popular/New pinned to the top on scroll. */
+      transform: translateY(calc(-1 * var(--feed-header-brand-height)));
     }
+  }
+`
+
+/** Sort controls — minimal text tabs; horizontal inset matches the feed avatar column. */
+export const FeedSortBar = styled.div`
+  box-sizing: border-box;
+  margin-inline: auto;
+  display: flex;
+  width: 100%;
+  max-width: 48rem;
+  gap: 1.25rem;
+  padding: 0.2rem 0.25rem 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+
+  @media (min-width: 640px) {
+    max-width: 40rem;
+    padding: 0.25rem 1.25rem 0;
+  }
+`
+
+export const FeedSortPill = styled.button<{ $active: boolean }>`
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0;
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid
+    ${(p) => (p.$active ? "var(--foreground)" : "transparent")};
+  background: transparent;
+  color: ${(p) => (p.$active ? "var(--foreground)" : "var(--muted-foreground)")};
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: ${(p) => (p.$active ? 600 : 500)};
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+
+  @media (min-width: 640px) {
+    font-size: 0.875rem;
+  }
+
+  &:hover {
+    color: var(--foreground);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+    border-radius: 2px;
   }
 `

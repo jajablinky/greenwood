@@ -1,9 +1,15 @@
 import { NavLink } from "react-router-dom"
 import styled, { css } from "styled-components"
 
+/**
+ * Must match `Bar`’s outer height (`min-height`) so scroll padding + fixed composers align with the nav.
+ */
+export const MOBILE_TAB_BAR_STACK_HEIGHT =
+  "calc(3rem + env(safe-area-inset-bottom, 0px))"
+
 /** Icon-only bar — shorter than labeled tabs. */
 const mobileTabBarReserve = css`
-  padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: ${MOBILE_TAB_BAR_STACK_HEIGHT};
   transition: padding-bottom 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 
   html[data-mobile-chrome-hidden="true"] & {
@@ -30,7 +36,7 @@ export const Bar = styled.nav`
     inset-inline: 0;
     bottom: 0;
     box-sizing: border-box;
-    padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
     justify-content: space-around;
     align-items: center;
     gap: 0;
@@ -43,7 +49,7 @@ export const Bar = styled.nav`
       sans-serif;
     -webkit-tap-highlight-color: transparent;
     padding-top: 0.35rem;
-    min-height: calc(2.75rem + env(safe-area-inset-bottom, 0px));
+    min-height: calc(3rem + env(safe-area-inset-bottom, 0px));
     transition:
       transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.18s ease;

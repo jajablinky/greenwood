@@ -5,6 +5,7 @@ import { ArrowUpIcon, Globe, ShuffleIcon } from "assets/icons"
 
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
 import { Button } from "components/atoms/Button"
+import { ProfileHoverCard } from "components/molecules/ProfileHoverCard/ProfileHoverCard"
 import type { FeedComment } from "helpers/activity-feed-mock-data"
 import type { GlobalFeedItem } from "helpers/activity-feed-mock-data"
 import {
@@ -204,21 +205,31 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
         </S.CommentMiniVoteCol>
       )}
       <S.CommentMainRow>
-        <S.CommentAvatarLink
-          to={profilePathForAuthor(node.author)}
-          aria-label={`Open ${node.author} profile`}
-          title={node.author}
-        >
-          <S.CommentAvatar>
-            <S.CommentAvatarFallback>{node.authorInitials}</S.CommentAvatarFallback>
-          </S.CommentAvatar>
-        </S.CommentAvatarLink>
+        <ProfileHoverCard handle={node.author}>
+          <S.CommentAvatarLink
+            to={profilePathForAuthor(node.author)}
+            aria-label={`Open ${node.author} profile`}
+            title={node.author}
+          >
+            <S.CommentAvatar>
+              <S.CommentAvatarFallback>{node.authorInitials}</S.CommentAvatarFallback>
+            </S.CommentAvatar>
+          </S.CommentAvatarLink>
+        </ProfileHoverCard>
         <S.CommentBlock>
           {isRemix ? (
             <S.CommentRemixMetaBar>
               <S.CommentMetaLead>
                 <S.CommentMeta>
-                  <S.CommentAuthor>{node.author}</S.CommentAuthor>
+                  <ProfileHoverCard handle={node.author}>
+                    <S.CommentAuthor
+                      to={profilePathForAuthor(node.author)}
+                      aria-label={`Open ${node.author} profile`}
+                      title={node.author}
+                    >
+                      {node.author}
+                    </S.CommentAuthor>
+                  </ProfileHoverCard>
                   <S.CommentKindBadge $kind="remix">Remix</S.CommentKindBadge>
                   <S.CommentMetaDot aria-hidden />
                   <time>{formatShortTimeAgo(node.createdAt)}</time>
@@ -243,7 +254,15 @@ export function CommentThreadNode(props: CommentThreadNodeProps) {
             </S.CommentRemixMetaBar>
           ) : (
             <S.CommentMeta>
-              <S.CommentAuthor>{node.author}</S.CommentAuthor>
+              <ProfileHoverCard handle={node.author}>
+                <S.CommentAuthor
+                  to={profilePathForAuthor(node.author)}
+                  aria-label={`Open ${node.author} profile`}
+                  title={node.author}
+                >
+                  {node.author}
+                </S.CommentAuthor>
+              </ProfileHoverCard>
               <S.CommentKindBadge $kind="comment">Comment</S.CommentKindBadge>
               <S.CommentMetaDot aria-hidden />
               <time>{formatShortTimeAgo(node.createdAt)}</time>

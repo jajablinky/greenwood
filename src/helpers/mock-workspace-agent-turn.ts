@@ -45,7 +45,10 @@ export async function runMockWorkspaceAgentSequence(opts: {
   setPhase(slug, "thinking")
   clearFiles(slug)
 
-  pushTrace(slug, { kind: "user_line", text: `You · ${userMessage.slice(0, 280)}` })
+  pushTrace(slug, {
+    kind: "user_line",
+    text: userMessage.slice(0, 280),
+  })
   await sleep(420)
   pushTrace(slug, { kind: "thought_elapsed", text: "Thought for 5s" })
   await sleep(380)
@@ -108,12 +111,19 @@ export async function runMockWorkspaceAgentSequence(opts: {
   ]
   for (const f of files) {
     pushFile(slug, f)
-    pushTrace(slug, { kind: "line", text: `↳ Open ${f}` })
-    await sleep(220)
   }
 
-  pushTrace(slug, { kind: "line", text: "Explored lints" })
-  await sleep(260)
+  const exploreItems = [
+    ...files.map((f) => `↳ Open ${f}`),
+    "↳ Explored lints",
+  ]
+  pushTrace(slug, {
+    kind: "explore_block",
+    fileCount: files.length,
+    searchCount: 1,
+    items: exploreItems,
+  })
+  await sleep(380)
 
   setPhase(slug, "synthesizing")
   pushTrace(slug, {
@@ -148,7 +158,6 @@ With APP_MOCK_ONLY and this Ouro detail in comment mode: Enter sends your prompt
     kind: "line",
     text: "✓ Preview bundle synced. Workspace graph consistent.",
   })
-  pushTrace(slug, { kind: "review_footer", additions: 817, deletions: 290 })
   await sleep(400)
   setPhase(slug, "idle")
 }

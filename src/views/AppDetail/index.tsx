@@ -476,19 +476,6 @@ export function AppDetailPage() {
     (mockTrace.length > 0 ||
       (mockPhase != null && mockPhase !== "idle"))
 
-  const mockPhaseLabel =
-    mockPhase === "thinking"
-      ? "Thinking"
-      : mockPhase === "exploring"
-        ? "Exploring files"
-        : mockPhase === "synthesizing"
-          ? "Writing"
-          : mockPhase === "done"
-            ? "Done"
-            : mockPhase === "idle"
-              ? "Ready"
-              : null
-
   const remixEntries = useMemo(() => mockRemixListForItem(item), [item])
 
   const remixBarLeadText = useMemo(() => {
@@ -557,12 +544,57 @@ export function AppDetailPage() {
 
             <S.HeroMetaRow>
               <S.HeroTextCol>
-                <S.TitleRow>
-                  <S.TitleH1>{title}</S.TitleH1>
-                  {ouroRunStatus ? (
-                    <ProjectStatusPill status={ouroRunStatus} />
+                <S.HeroTitleLine>
+                  <S.HeroTitleLead>
+                    <S.TitleRow>
+                      <S.TitleH1>{title}</S.TitleH1>
+                      {ouroRunStatus ? (
+                        <ProjectStatusPill status={ouroRunStatus} />
+                      ) : null}
+                    </S.TitleRow>
+                  </S.HeroTitleLead>
+                  {remixEntries.length > 0 ? (
+                    <S.HeroRemixToggleSlot>
+                      <S.RemixAsideToggleButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-expanded={remixAsideOpen}
+                        title={
+                          remixAsideOpen
+                            ? "Hide other remixes"
+                            : `Show other remixes (${remixEntries.length})`
+                        }
+                        aria-label={
+                          remixAsideOpen
+                            ? `Hide other remixes — ${remixEntries.length} listed`
+                            : `Show other remixes — ${remixEntries.length} listed`
+                        }
+                        onClick={() => {
+                          setRemixAsideOpen((v) => {
+                            const next = !v
+                            if (next) {
+                              window.setTimeout(() => {
+                                document.getElementById("remixes")?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                })
+                              }, 0)
+                            }
+                            return next
+                          })
+                        }}
+                      >
+                        <S.RemixAsideToggleIcon>
+                          <ShuffleIcon strokeWidth={2} aria-hidden />
+                        </S.RemixAsideToggleIcon>
+                        <S.RemixAsideToggleCount>
+                          {remixEntries.length > 99 ? "99+" : remixEntries.length}
+                        </S.RemixAsideToggleCount>
+                      </S.RemixAsideToggleButton>
+                    </S.HeroRemixToggleSlot>
                   ) : null}
-                </S.TitleRow>
+                </S.HeroTitleLine>
                 <S.SubMetaLine>
                   <S.SubMetaNums title={item.builderWallet}>
                     {abbreviateWalletAddress(item.builderWallet)}
@@ -610,54 +642,15 @@ export function AppDetailPage() {
             <S.CommentsSection id="comments" aria-label="Comments">
               {remixEntries.length > 0 ? (
                 <S.RemixThreadWrap id="remixes" aria-label="Community remixes">
-                  <S.RemixThreadBar>
-                    <S.RemixThreadBarLead>
-                      {remixBarLeadText ? (
+                  {remixBarLeadText ? (
+                    <S.RemixThreadBar>
+                      <S.RemixThreadBarLead>
                         <S.RemixThreadFirstSnippet title={remixBarLeadText}>
                           {remixBarLeadText}
                         </S.RemixThreadFirstSnippet>
-                      ) : null}
-                    </S.RemixThreadBarLead>
-                    <S.RemixThreadBarTrail>
-                      <S.RemixAsideToggleButton
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-expanded={remixAsideOpen}
-                        title={
-                          remixAsideOpen
-                            ? "Hide other remixes"
-                            : `Show other remixes (${remixEntries.length})`
-                        }
-                        aria-label={
-                          remixAsideOpen
-                            ? `Hide other remixes — ${remixEntries.length} listed`
-                            : `Show other remixes — ${remixEntries.length} listed`
-                        }
-                        onClick={() => {
-                          setRemixAsideOpen((v) => {
-                            const next = !v
-                            if (next) {
-                              window.setTimeout(() => {
-                                document.getElementById("remixes")?.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "start",
-                                })
-                              }, 0)
-                            }
-                            return next
-                          })
-                        }}
-                      >
-                        <S.RemixAsideToggleIcon>
-                          <ShuffleIcon strokeWidth={2} aria-hidden />
-                        </S.RemixAsideToggleIcon>
-                        <S.RemixAsideToggleCount>
-                          {remixEntries.length > 99 ? "99+" : remixEntries.length}
-                        </S.RemixAsideToggleCount>
-                      </S.RemixAsideToggleButton>
-                    </S.RemixThreadBarTrail>
-                  </S.RemixThreadBar>
+                      </S.RemixThreadBarLead>
+                    </S.RemixThreadBar>
+                  ) : null}
                   {remixAsideOpen ? (
                     <S.RemixAsideList>
                       {remixEntries.map((r) => (
@@ -695,23 +688,9 @@ export function AppDetailPage() {
                   ) : null}
                 </S.RemixThreadWrap>
               ) : null}
-              {showMockAgentPanel ? (
+              {showMockAgentPanel && mockTraceForPanel.length > 0 ? (
                 <S.MockAgentActivity aria-live="polite">
-                  {mockPhaseLabel ? (
-                    <S.MockAgentPhaseRow>
-                      <S.MockAgentPhaseDot
-                        $pulse={
-                          mockPhase != null &&
-                          mockPhase !== "idle" &&
-                          mockPhase !== "done"
-                        }
-                      />
-                      {mockPhaseLabel}
-                    </S.MockAgentPhaseRow>
-                  ) : null}
-                  {mockTraceForPanel.length > 0 ? (
-                    <MockAgentTraceList entries={mockTraceForPanel} />
-                  ) : null}
+                  <MockAgentTraceList entries={mockTraceForPanel} />
                 </S.MockAgentActivity>
               ) : null}
               <S.DetailChatComposerSheet $workspace={ouroSlug != null}>

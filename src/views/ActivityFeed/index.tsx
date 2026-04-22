@@ -8,8 +8,6 @@ import {
 import {
   ArrowUpIcon,
   Globe,
-  Link2,
-  MessageSquare,
   MessageSquareIcon,
   Plus,
   Send,
@@ -23,6 +21,7 @@ import {
 } from "components/atoms/ProjectStatusPill"
 import { VoteBlockArrowDown, VoteBlockArrowUp } from "components/atoms/VoteBlockArrows"
 import { CreateProjectDialog } from "components/molecules/CreateProjectDialog"
+import { ProfileHoverCard } from "components/molecules/ProfileHoverCard/ProfileHoverCard"
 import { activityDetailPath, studioPathForProtocol } from "helpers/app-route-name"
 import {
   INITIAL_ACTIVITY_FEED,
@@ -35,12 +34,10 @@ import {
   FEED_COMMENT_TOP_N,
   sortCommentRootsByHot,
 } from "helpers/comment-tree"
-import { feedDetailAbsoluteUrl } from "helpers/feed-detail-url"
 import { profilePathForAuthor } from "helpers/profile-path"
 import { formatCount } from "helpers/format-count"
 import { formatShortTimeAgo } from "helpers/format-short-time-ago"
 import { APP_MOCK_ONLY } from "helpers/app-mode"
-import { slicePrompt } from "helpers/remix-comment"
 import { workspaceSlugFromFeedId } from "helpers/ouro-feed-items"
 import { postMessageToGeneralChannel } from "helpers/ouroboros/api"
 import { useArweaveProvider } from "providers/ArweaveProvider"
@@ -62,6 +59,8 @@ import { FeedPostOverflowMenu } from "./FeedPostOverflowMenu"
 import * as S from "./styles"
 
 type ViewerVote = "up" | "down" | null
+
+type FeedSort = "popular" | "new"
 
 function newCommentId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -115,6 +114,7 @@ export function ActivityFeedPage() {
   const [feedCommentsRevealed, setFeedCommentsRevealed] = useState<
     Record<string, boolean>
   >({})
+  const [feedSort, setFeedSort] = useState<FeedSort>("popular")
 
   useEffect(() => {
     if (searchParams.get("action") !== "create") {
@@ -158,12 +158,20 @@ export function ActivityFeedPage() {
     const viewerDelta = (id: string) =>
       votes[id] === "up" ? 1 : votes[id] === "down" ? -1 : 0
 
+    if (feedSort === "new") {
+      list.sort(
+        (a, b) =>
+          b.createdAt - a.createdAt || a.id.localeCompare(b.id),
+      )
+      return list
+    }
+
     list.sort(
       (a, b) =>
-        hotScore(b, viewerDelta(b.id)) - hotScore(a, viewerDelta(a.id))
+        hotScore(b, viewerDelta(b.id)) - hotScore(a, viewerDelta(a.id)),
     )
     return list
-  }, [votes, ouroFeedItems])
+  }, [votes, ouroFeedItems, feedSort])
 
   const remixSourceForDialog = useMemo(() => {
     if (!remixCreateFeedId) {
@@ -312,6 +320,26 @@ export function ActivityFeedPage() {
             <S.HeaderConnectWalletButton />
           </S.HeaderActions>
         </S.HeaderInner>
+        <S.FeedSortBar role="tablist" aria-label="Sort feed">
+          <S.FeedSortPill
+            type="button"
+            role="tab"
+            aria-selected={feedSort === "popular"}
+            $active={feedSort === "popular"}
+            onClick={() => setFeedSort("popular")}
+          >
+            Popular
+          </S.FeedSortPill>
+          <S.FeedSortPill
+            type="button"
+            role="tab"
+            aria-selected={feedSort === "new"}
+            $active={feedSort === "new"}
+            onClick={() => setFeedSort("new")}
+          >
+            New
+          </S.FeedSortPill>
+        </S.FeedSortBar>
       </S.StickyHeader>
 
       <CreateProjectDialog
@@ -327,6 +355,8 @@ export function ActivityFeedPage() {
 
       <S.FeedCreateFab
         type="button"
+        variant="accent"
+        size="lg"
         aria-label="Create app"
         title="Create app"
         onClick={() => {
@@ -335,6 +365,7 @@ export function ActivityFeedPage() {
         }}
       >
         <Plus strokeWidth={2.25} aria-hidden />
+        <span>Create</span>
       </S.FeedCreateFab>
 
       <S.FeedMain>
@@ -378,80 +409,49 @@ export function ActivityFeedPage() {
                       title={`Open ${item.appName} detail page`}
                     />
                     <S.CardTweetSection>
-                      <S.BuilderAvatarLink
-                        to={profilePathForAuthor(item.builder)}
-                        aria-label={`Open ${item.builder} profile`}
-                        title={item.builder}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <S.BuilderAvatar
-                          aria-label={`Builder wallet ${item.builderWallet}`}
-                          title={item.builderWallet}
-                        >
-                          <S.BuilderAvatarFallback>
-                            {item.builderInitials}
-                          </S.BuilderAvatarFallback>
-                        </S.BuilderAvatar>
-                      </S.BuilderAvatarLink>
                       <S.FeedTweetBody>
                         <S.FeedTweetAppRow>
                           <S.FeedTweetAppLeading>
+                      <ProfileHoverCard handle={item.builder}>
+                        <S.BuilderAvatarLink
+                          to={profilePathForAuthor(item.builder)}
+                          aria-label={`Open ${item.builder} profile`}
+                          title={item.builder}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <S.BuilderAvatar
+                            aria-label={`Builder wallet ${item.builderWallet}`}
+                            title={item.builderWallet}
+                          >
+                            <S.BuilderAvatarFallback>
+                              {item.builderInitials}
+                            </S.BuilderAvatarFallback>
+                          </S.BuilderAvatar>
+                        </S.BuilderAvatarLink>
+                      </ProfileHoverCard>
                             <S.FeedTweetAppName>{item.appName}</S.FeedTweetAppName>
                             {ouroStatus ? (
                               <ProjectStatusPill status={ouroStatus} />
                             ) : null}
+                            <S.FeedTweetTimeInline>
+                              <S.FeedTweetTimeSep aria-hidden>·</S.FeedTweetTimeSep>
+                              <S.FeedTweetTime
+                                title={new Date(item.createdAt).toLocaleString()}
+                              >
+                                {formatShortTimeAgo(item.createdAt)}
+                              </S.FeedTweetTime>
+                            </S.FeedTweetTimeInline>
                           </S.FeedTweetAppLeading>
-                          <S.FeedTweetPromptAside>
-                            <S.FeedTweetTime
-                              title={new Date(item.createdAt).toLocaleString()}
-                            >
-                              {formatShortTimeAgo(item.createdAt)}
-                            </S.FeedTweetTime>
+                          <S.CardActionBarOverflow>
                             <FeedPostOverflowMenu
                               detailPath={detailHref}
                               transactionId={item.transactionId}
                               cardLabel={cardTitle}
                             />
-                          </S.FeedTweetPromptAside>
+                          </S.CardActionBarOverflow>
                         </S.FeedTweetAppRow>
-                        <S.FeedTweetPrompt title={item.detail}>
-                          {slicePrompt(item.detail, 200)}
-                        </S.FeedTweetPrompt>
                       </S.FeedTweetBody>
 
-                      <S.FeedListingVoteCluster
-                        role="group"
-                        aria-label="Vote on this listing"
-                      >
-                        <S.VoteIconBtn
-                          variant="vote"
-                          voteDirection="up"
-                          aria-label="Upvote"
-                          aria-pressed={v === "up"}
-                          onClick={() => toggleVote(item.id, "up")}
-                        >
-                          <S.VoteArrowWrap>
-                            <VoteBlockArrowUp filled={v === "up"} />
-                          </S.VoteArrowWrap>
-                        </S.VoteIconBtn>
-                        <S.FeedListingScoreValue
-                          $tone={scoreTone(score)}
-                          title="Score"
-                        >
-                          {formatCount(score)}
-                        </S.FeedListingScoreValue>
-                        <S.VoteIconBtn
-                          variant="vote"
-                          voteDirection="down"
-                          aria-label="Downvote"
-                          aria-pressed={v === "down"}
-                          onClick={() => toggleVote(item.id, "down")}
-                        >
-                          <S.VoteArrowWrap>
-                            <VoteBlockArrowDown filled={v === "down"} />
-                          </S.VoteArrowWrap>
-                        </S.VoteIconBtn>
-                      </S.FeedListingVoteCluster>
                       <S.CardPreviewFrame>
                         <S.CardPreviewIframe
                           title={`${item.appName} preview`}
@@ -463,99 +463,60 @@ export function ActivityFeedPage() {
                       </S.CardPreviewFrame>
 
                       <S.CardActionBar>
-                        <S.FeedCommentLinkButton
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-expanded={commentsThreadVisible}
-                          title={
-                            commentsThreadVisible
-                              ? `${comments.length} ${comments.length === 1 ? "comment" : "comments"} — hide comments`
-                              : `${comments.length} ${comments.length === 1 ? "comment" : "comments"} — show comments`
-                          }
-                          aria-label={
-                            commentsThreadVisible
-                              ? `Hide comments on ${cardTitle} — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`
-                              : `Show comments on ${cardTitle} — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`
-                          }
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setFeedCommentsRevealed((p) => {
-                              const show = p[item.id] !== true
-                              if (show) {
-                                window.setTimeout(() => {
-                                  document
-                                    .getElementById(`comments-${item.id}`)
-                                    ?.scrollIntoView({
-                                      behavior: "smooth",
-                                      block: "start",
-                                    })
-                                }, 0)
-                              }
-                              return { ...p, [item.id]: show }
-                            })
-                          }}
+                        <S.FeedSocialActionCluster
+                          role="group"
+                          aria-label="Listing actions"
                         >
-                          <S.Icon16>
-                            <MessageSquareIcon strokeWidth={2} aria-hidden />
-                          </S.Icon16>
-                          <S.TabularText>
-                            {comments.length > 99 ? "99+" : comments.length}
-                          </S.TabularText>
-                        </S.FeedCommentLinkButton>
-                        <S.FeedActionIconButton
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          title="Copy link to this listing"
-                          aria-label={`Copy link to ${cardTitle}`}
-                          onPointerDown={(e) => {
-                            e.stopPropagation()
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            void navigator.clipboard
-                              .writeText(feedDetailAbsoluteUrl(detailHref))
-                              .then(
-                                () => {
-                                  push({
-                                    title: "Link copied",
-                                    variant: "success",
-                                  })
-                                },
-                                () => {
-                                  push({
-                                    title: "Could not copy link",
-                                    variant: "warning",
-                                  })
-                                },
-                              )
-                          }}
-                        >
-                          <S.Icon16>
-                            <Link2 strokeWidth={2} aria-hidden />
-                          </S.Icon16>
-                        </S.FeedActionIconButton>
-                        <S.FeedViewAppLinkButton
-                          variant="ghost"
-                          size="sm"
-                          nativeButton={false}
-                          render={<Link to={detailHref} />}
-                          title={`Open ${item.appName} app`}
-                          aria-label={`View app — ${item.appName}`}
-                        >
-                          <S.Icon16>
-                            <Globe strokeWidth={2} aria-hidden />
-                          </S.Icon16>
-                        </S.FeedViewAppLinkButton>
-                        <S.CardActionBarTrailing>
-                          <S.FeedRemixButton
+                          <S.FeedCommentLinkButton
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-expanded={commentsThreadVisible}
+                            title={
+                              commentsThreadVisible
+                                ? `${comments.length} ${comments.length === 1 ? "comment" : "comments"} — hide comments`
+                                : `${comments.length} ${comments.length === 1 ? "comment" : "comments"} — show comments`
+                            }
+                            aria-label={
+                              commentsThreadVisible
+                                ? `Hide comments on ${cardTitle} — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`
+                                : `Show comments on ${cardTitle} — ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`
+                            }
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setFeedCommentsRevealed((p) => {
+                                const show = p[item.id] !== true
+                                if (show) {
+                                  window.setTimeout(() => {
+                                    document
+                                      .getElementById(`comments-${item.id}`)
+                                      ?.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "start",
+                                      })
+                                  }, 0)
+                                }
+                                return { ...p, [item.id]: show }
+                              })
+                            }}
+                          >
+                            <S.Icon16>
+                              <MessageSquareIcon strokeWidth={2} aria-hidden />
+                            </S.Icon16>
+                            <S.TabularText>
+                              {comments.length > 99 ? "99+" : comments.length}
+                            </S.TabularText>
+                          </S.FeedCommentLinkButton>
+                          <S.FeedCommentLinkButton
                             type="button"
                             variant="ghost"
                             size="sm"
                             title={`${remixListCount} community remixes — start yours from this app`}
                             aria-label={`Remix ${item.appName} — opens create remix with this listing (${remixListCount} other remixes on the app page)`}
+                            onPointerDown={(e) => {
+                              e.stopPropagation()
+                            }}
                             onClick={(e) => {
                               e.stopPropagation()
                               setRemixCreateFeedId(item.id)
@@ -565,12 +526,56 @@ export function ActivityFeedPage() {
                             <S.Icon16>
                               <ShuffleIcon strokeWidth={2} aria-hidden />
                             </S.Icon16>
-                            <S.FeedRemixButtonText>Remix</S.FeedRemixButtonText>
                             <S.TabularText>
                               {remixListCount > 99 ? "99+" : remixListCount}
                             </S.TabularText>
-                          </S.FeedRemixButton>
-                        </S.CardActionBarTrailing>
+                          </S.FeedCommentLinkButton>
+                          <S.FeedViewAppLinkButton
+                            variant="ghost"
+                            size="sm"
+                            nativeButton={false}
+                            render={<Link to={detailHref} />}
+                            title={`Open ${item.appName} app`}
+                            aria-label={`View app — ${item.appName}`}
+                          >
+                            <S.Icon16>
+                              <Globe strokeWidth={2} aria-hidden />
+                            </S.Icon16>
+                          </S.FeedViewAppLinkButton>
+                        </S.FeedSocialActionCluster>
+                        <S.FeedVoteCluster
+                          role="group"
+                          aria-label="Vote on this listing"
+                        >
+                          <S.VoteIconBtn
+                            variant="vote"
+                            voteDirection="up"
+                            aria-label="Upvote"
+                            aria-pressed={v === "up"}
+                            onClick={() => toggleVote(item.id, "up")}
+                          >
+                            <S.VoteArrowWrap>
+                              <VoteBlockArrowUp filled={v === "up"} />
+                            </S.VoteArrowWrap>
+                          </S.VoteIconBtn>
+                          <S.FeedListingScoreValue
+                            $tone={scoreTone(score)}
+                            title="Score"
+                          >
+                            {formatCount(score)}
+                          </S.FeedListingScoreValue>
+                          <S.VoteIconBtn
+                            variant="vote"
+                            voteDirection="down"
+                            aria-label="Downvote"
+                            aria-pressed={v === "down"}
+                            onClick={() => toggleVote(item.id, "down")}
+                          >
+                            <S.VoteArrowWrap>
+                              <VoteBlockArrowDown filled={v === "down"} />
+                            </S.VoteArrowWrap>
+                          </S.VoteIconBtn>
+                        </S.FeedVoteCluster>
                       </S.CardActionBar>
                     </S.CardTweetSection>
                   </S.FeedCard>
@@ -641,19 +646,7 @@ export function ActivityFeedPage() {
                         </form>
                       ) : null}
 
-                      {!commentsThreadVisible ? null : comments.length === 0 ? (
-                        <DetailCommentS.EmptyComments>
-                          <DetailCommentS.EmptyCommentsIcon>
-                            <MessageSquare strokeWidth={1} aria-hidden />
-                          </DetailCommentS.EmptyCommentsIcon>
-                          <DetailCommentS.EmptyCommentsTitle>
-                            No comments yet
-                          </DetailCommentS.EmptyCommentsTitle>
-                          <DetailCommentS.EmptyCommentsHint>
-                            Be the first to add a comment
-                          </DetailCommentS.EmptyCommentsHint>
-                        </DetailCommentS.EmptyComments>
-                      ) : (
+                      {!commentsThreadVisible ? null : comments.length === 0 ? null : (
                         (() => {
                           const threadRoots = sortCommentRootsByHot(
                             buildCommentTree(comments),

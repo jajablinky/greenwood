@@ -499,9 +499,14 @@ export const CommentMetaDot = styled.span`
   opacity: 0.6;
 `
 
-export const CommentAuthor = styled.span`
+export const CommentAuthor = styled(Link)`
   font-weight: 600;
   color: var(--foreground);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 `
 
 export const CommentKindBadge = styled.span<{ $kind: "comment" | "remix" }>`
@@ -659,7 +664,7 @@ export const RemixViewAppLink = styled(Link)`
 `
 
 /**
- * Ghost pill icon-only — matches feed `FeedRemixButton` / `FeedActionIconButton`
+ * Ghost pill icon-only — matches feed `FeedCommentLinkButton` (icon + count) / globe
  * (muted, circular hover); shuffle icon only, no label.
  */
 export const RemixThreadIconButton = styled(Button).attrs({

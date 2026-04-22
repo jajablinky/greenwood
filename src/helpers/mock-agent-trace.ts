@@ -17,4 +17,10 @@ export type MockTraceEntry =
       lines: MockDiffLine[]
     }
   | { kind: "command"; text: string }
-  | { kind: "review_footer"; additions: number; deletions: number }
+  /** Condensed file/search pass — summary row expands to show line items. */
+  | {
+      kind: "explore_block"
+      fileCount: number
+      searchCount: number
+      items: string[]
+    }

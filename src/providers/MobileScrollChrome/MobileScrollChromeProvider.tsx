@@ -1,8 +1,5 @@
 import { useEffect } from "react"
 
-/** Matches `MobileTabBar` / layout mobile breakpoint. */
-const MOBILE_MQ = "(max-width: 639.98px)"
-
 const DATA_ATTR = "mobileChromeHidden"
 
 function setChromeHidden(hidden: boolean) {
@@ -14,21 +11,15 @@ function setChromeHidden(hidden: boolean) {
 }
 
 /**
- * On narrow viewports, hides the sticky app header and bottom tab bar while the user
- * scrolls down; shows them again on scroll up or when near the top of the page.
+ * Tracks scroll direction across all viewports and toggles `html[data-mobile-chrome-hidden]`.
+ * Consumers decide where to react — on mobile this hides the tab bar and app detail header;
+ * on desktop the feed uses it to slide the brand row off while keeping the sort tabs pinned.
  */
 export function MobileScrollChromeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    const mq = window.matchMedia(MOBILE_MQ)
     let lastY = window.scrollY
 
     const sync = () => {
-      if (!mq.matches) {
-        setChromeHidden(false)
-        lastY = window.scrollY
-        return
-      }
-
       const y = window.scrollY
       const delta = y - lastY
       const topRevealPx = 14
@@ -50,24 +41,12 @@ export function MobileScrollChromeProvider({ children }: { children: React.React
       sync()
     }
 
-    const onMqChange = () => {
-      lastY = window.scrollY
-      if (!mq.matches) {
-        setChromeHidden(false)
-      }
-    }
-
     lastY = window.scrollY
-    if (!mq.matches) {
-      setChromeHidden(false)
-    }
 
     window.addEventListener("scroll", onScroll, { passive: true })
-    mq.addEventListener("change", onMqChange)
 
     return () => {
       window.removeEventListener("scroll", onScroll)
-      mq.removeEventListener("change", onMqChange)
       setChromeHidden(false)
     }
   }, [])

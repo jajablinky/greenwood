@@ -81,15 +81,6 @@ export const CollapsedHint = styled.span`
   }
 `
 
-export const PhoneSrcDocIframe = styled.iframe`
-  display: block;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  border: 0;
-  background: var(--background);
-`
-
 export const ExpandOverlayRoot = styled.div`
   position: fixed;
   inset: 0;
@@ -97,9 +88,10 @@ export const ExpandOverlayRoot = styled.div`
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: oklch(0.18 0 0 / 96%);
-  overflow: auto;
+  overflow: hidden;
   padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0)
     env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
 
@@ -146,11 +138,19 @@ export const ShrinkButton = styled.button`
   }
 `
 
-export const PhoneStage = styled.div`
+/** Fills viewport below the top bar — full-width preview, not a phone frame. */
+export const FullscreenIframeWrapper = styled.div`
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1rem 1.25rem;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+`
+
+export const FullscreenSrcDocIframe = styled.iframe`
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: var(--background);
 `
